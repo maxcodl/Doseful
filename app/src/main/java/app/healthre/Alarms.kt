@@ -26,6 +26,8 @@ object Alarms {
     private const val CH_DOSE = "dose_v2"
     private const val CH_ALARM = "dose_alarm"
     private const val CH_REFILL = "refill"
+    private const val CH_APPT = "appointments"
+    private const val APPT_BASE = 3_000_000
     private const val STATUS_ID = 2_000_000
     private const val TEST_ID = 2_000_001
     private const val MIDNIGHT_CODE = 2_000_002
@@ -53,6 +55,7 @@ object Alarms {
         })
 
         nm.createNotificationChannel(NotificationChannel(CH_REFILL, "Refill reminders", NotificationManager.IMPORTANCE_DEFAULT))
+        nm.createNotificationChannel(NotificationChannel(CH_APPT, "Appointment reminders", NotificationManager.IMPORTANCE_HIGH))
 
         nm.createNotificationChannel(NotificationChannel(CH_STATUS, "Today's progress (persistent)", NotificationManager.IMPORTANCE_LOW).apply {
             description = "An always-visible summary of today's doses. Turn this off in your phone's notification settings to hide it."
@@ -122,6 +125,7 @@ object Alarms {
     /** Reschedules every dose alarm, the midnight refresh, and refreshes the persistent notification. */
     suspend fun rescheduleAll(ctx: Context, dao: AppDao) {
         dao.allSchedules().forEach { schedule(ctx, it) }
+        dao.appointmentsNow().forEach { scheduleAppointment(ctx, it) }
         scheduleMidnight(ctx)
         updateStatus(ctx, dao)
     }
@@ -173,6 +177,45 @@ object Alarms {
             .setContentText("${m.stock} left (refill at ${m.refillThreshold})")
             .setAutoCancel(true).build()
         notify(ctx, 1_000_000 + m.id.toInt(), n)
+    }
+
+    private fun apptPi(ctx: Context, id: Long, which: Int, flags: Int = PendingIntent.FLAG_UPDATE_CURRENT) = PendingIntent.getBroadcast(
+        ctx, APPT_BASE + id.toInt() * 2 + which,
+        Intent(ctx, AlarmReceiver::class.java).putExtra("appt", id).putExtra("which", which), flags or PendingIntent.FLAG_IMMUTABLE,
+    )
+
+    fun appointmentStart(a: Appointment): ZonedDateTime =
+        LocalDate.ofEpochDay(a.epochDay).atTime(a.minuteOfDay / 60, a.minuteOfDay % 60).atZone(java.time.ZoneId.systemDefault())
+
+    fun cancelAppointment(ctx: Context, id: Long) {
+        val am = ctx.getSystemService(AlarmManager::class.java)
+        for (which in 0..1) apptPi(ctx, id, which, PendingIntent.FLAG_NO_CREATE)?.let { am.cancel(it) }
+    }
+
+    /** Schedules the "day before" (0) and "hour before" (1) reminders that are switched on and still in the future. */
+    fun scheduleAppointment(ctx: Context, a: Appointment) {
+        cancelAppointment(ctx, a.id)
+        val am = ctx.getSystemService(AlarmManager::class.java)
+        val start = appointmentStart(a)
+        val now = ZonedDateTime.now()
+        listOf(Triple(0, a.remindDayBefore, start.minusDays(1)), Triple(1, a.remindHourBefore, start.minusHours(1))).forEach { (which, on, at) ->
+            if (!on || !at.isAfter(now)) return@forEach
+            val pi = apptPi(ctx, a.id, which)
+            val ms = at.toInstant().toEpochMilli()
+            if (canExact(ctx)) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, ms, pi) else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, ms, pi)
+        }
+    }
+
+    fun notifyAppointment(ctx: Context, a: Appointment, which: Int) {
+        val time = "%02d:%02d".format(a.minuteOfDay / 60, a.minuteOfDay % 60)
+        val title = a.title + a.doctor.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty()
+        val text = (if (which == 0) "Tomorrow at $time" else "In 1 hour, at $time") + a.place.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty()
+        val n = NotificationCompat.Builder(ctx, CH_APPT)
+            .setSmallIcon(R.drawable.ic_pill).setContentTitle(title).setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setPriority(NotificationCompat.PRIORITY_HIGH).setCategory(NotificationCompat.CATEGORY_EVENT)
+            .setContentIntent(openAppPi(ctx)).setAutoCancel(true).build()
+        notify(ctx, 4_000_000 + a.id.toInt() * 2 + which, n)
     }
 
     /** The persistent notification: today's progress and the next dose. It uses its own low-priority channel so it can be hidden in system settings. */
@@ -234,8 +277,14 @@ class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         val sid = intent.getLongExtra("sid", -1)
         val refresh = intent.getBooleanExtra("refresh", false)
+        val appt = intent.getLongExtra("appt", -1)
+        val which = intent.getIntExtra("which", 1)
         Alarms.receiverWork(ctx, goAsync()) { app ->
             val dao = app.db.dao()
+            if (appt > 0) {
+                dao.appointment(appt)?.let { Alarms.notifyAppointment(app, it, which) }
+                return@receiverWork
+            }
             if (refresh) {
                 Alarms.rescheduleAll(app, dao)
                 return@receiverWork

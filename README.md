@@ -36,6 +36,10 @@
 - **Adherence at a glance.** A 14-day adherence ring, a streak counter and a day-by-day list.
 - **Material 3 Expressive.** Morphing shapes, expressive motion, connected toggle buttons, wavy progress indicators and Material You dynamic colour.
 - **AMOLED black and floating navbar.** Light, dark or system theme, an optional true-black mode, and a switch between a standard and a floating navigation bar.
+- **Medical ID.** Blood type, allergies, conditions, your doctor and an emergency contact you can call with one tap.
+- **Appointments.** Doctor visits with the place, phone and notes, reminders a day and an hour before, and shortcuts to open the address in Maps, call, or add the visit to your calendar.
+- **Health log.** Track weight, blood pressure, blood sugar, heart rate and temperature with a chart for each.
+- **App lock.** Optionally ask for your phone's PIN, pattern or fingerprint when Doseful opens.
 - **Profile with photo.** Pick a picture from the system photo picker. It never leaves the device.
 - **Backup and restore.** Export everything to a single JSON file and restore it later.
 - **Try before you commit.** A demo mode in onboarding runs the full app on fake data. Your own data is never touched.
@@ -57,7 +61,7 @@ Doseful declares **no `INTERNET` permission**, so it cannot send anything anywhe
 
 ## Try it with sample data
 
-`docs/sample-backup.json` contains a fake profile and six medicines with two weeks of history. To load it:
+`docs/sample-backup.json` contains a fake profile, six medicines with two weeks of history, appointments, a Medical ID and health readings. To load it:
 
 1. Copy the file to your phone.
 2. Open Doseful, then **Profile, Backup, Restore** and pick the file.

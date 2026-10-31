@@ -11,6 +11,181 @@
     "onboarded": true
   },
   "avatar": "",
+  "medicalId": {
+    "blood": "O+",
+    "allergies": "Penicillin",
+    "conditions": "Mild asthma",
+    "doctor": "Dr. Sharma",
+    "doctorPhone": "+91 90000 00001",
+    "emergencyName": "Sam",
+    "emergencyPhone": "+91 90000 00002"
+  },
+  "appointments": [
+    {
+      "id": 1,
+      "title": "Check-up",
+      "doctor": "Dr. Sharma",
+      "place": "City Clinic, 12 Park Road",
+      "phone": "+91 90000 00001",
+      "epochDay": 20761,
+      "minuteOfDay": 630,
+      "notes": "Bring last blood test report",
+      "remindDayBefore": true,
+      "remindHourBefore": true
+    },
+    {
+      "id": 2,
+      "title": "Blood test",
+      "doctor": "",
+      "place": "Metro Lab",
+      "phone": "",
+      "epochDay": 20770,
+      "minuteOfDay": 480,
+      "notes": "Fasting",
+      "remindDayBefore": true,
+      "remindHourBefore": false
+    },
+    {
+      "id": 3,
+      "title": "Dental cleaning",
+      "doctor": "Dr. Rao",
+      "place": "Smile Dental",
+      "phone": "",
+      "epochDay": 20738,
+      "minuteOfDay": 960,
+      "notes": "",
+      "remindDayBefore": false,
+      "remindHourBefore": false
+    }
+  ],
+  "measurements": [
+    {
+      "type": "weight",
+      "value": 72.5,
+      "value2": 0.0,
+      "recordedAt": 1792703279720,
+      "note": ""
+    },
+    {
+      "type": "weight",
+      "value": 72.2,
+      "value2": 0.0,
+      "recordedAt": 1792789679720,
+      "note": ""
+    },
+    {
+      "type": "weight",
+      "value": 71.9,
+      "value2": 0.0,
+      "recordedAt": 1792876079720,
+      "note": ""
+    },
+    {
+      "type": "weight",
+      "value": 71.6,
+      "value2": 0.0,
+      "recordedAt": 1792962479720,
+      "note": ""
+    },
+    {
+      "type": "weight",
+      "value": 71.3,
+      "value2": 0.0,
+      "recordedAt": 1793048879720,
+      "note": ""
+    },
+    {
+      "type": "weight",
+      "value": 71.0,
+      "value2": 0.0,
+      "recordedAt": 1793135279720,
+      "note": ""
+    },
+    {
+      "type": "weight",
+      "value": 70.7,
+      "value2": 0.0,
+      "recordedAt": 1793221679720,
+      "note": ""
+    },
+    {
+      "type": "weight",
+      "value": 70.4,
+      "value2": 0.0,
+      "recordedAt": 1793308079720,
+      "note": ""
+    },
+    {
+      "type": "weight",
+      "value": 70.1,
+      "value2": 0.0,
+      "recordedAt": 1793394479720,
+      "note": ""
+    },
+    {
+      "type": "weight",
+      "value": 69.8,
+      "value2": 0.0,
+      "recordedAt": 1793480879720,
+      "note": ""
+    },
+    {
+      "type": "bp",
+      "value": 118,
+      "value2": 78,
+      "recordedAt": 1792876079720,
+      "note": ""
+    },
+    {
+      "type": "bp",
+      "value": 121,
+      "value2": 80,
+      "recordedAt": 1792962479720,
+      "note": ""
+    },
+    {
+      "type": "bp",
+      "value": 124,
+      "value2": 78,
+      "recordedAt": 1793048879720,
+      "note": ""
+    },
+    {
+      "type": "bp",
+      "value": 118,
+      "value2": 80,
+      "recordedAt": 1793135279720,
+      "note": ""
+    },
+    {
+      "type": "bp",
+      "value": 121,
+      "value2": 78,
+      "recordedAt": 1793221679720,
+      "note": ""
+    },
+    {
+      "type": "bp",
+      "value": 124,
+      "value2": 80,
+      "recordedAt": 1793308079720,
+      "note": ""
+    },
+    {
+      "type": "bp",
+      "value": 118,
+      "value2": 78,
+      "recordedAt": 1793394479720,
+      "note": ""
+    },
+    {
+      "type": "bp",
+      "value": 121,
+      "value2": 80,
+      "recordedAt": 1793480879720,
+      "note": ""
+    }
+  ],
   "medicines": [
     {
       "id": 1,

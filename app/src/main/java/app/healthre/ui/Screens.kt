@@ -166,7 +166,8 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
     var tab by remember { mutableIntStateOf(0) }
     var editing by remember { mutableStateOf<Medicine?>(null) }
     var adding by remember { mutableStateOf(false) }
-    var inSettings by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    // Profile tab sub-pages: 0 = profile, 1 = settings, 2 = appointments, 3 = health log.
+    var page by androidx.compose.runtime.saveable.rememberSaveable { mutableIntStateOf(0) }
     // Predictive back: from any other tab the gesture previews a shrinking page and returns to Today.
     var backProgress by remember { mutableFloatStateOf(0f) }
     PredictiveBackHandler(enabled = tab != 0) { progress ->
@@ -178,8 +179,8 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
             backProgress = 0f
         }
     }
-    // Back from the Settings page returns to Profile first.
-    androidx.activity.compose.BackHandler(enabled = tab == 3 && inSettings) { inSettings = false }
+    // Back from a sub-page returns to Profile first.
+    androidx.activity.compose.BackHandler(enabled = tab == 3 && page != 0) { page = 0 }
     val floating = app.theme.floatingNav
     val backdrop = com.kyant.backdrop.backdrops.rememberLayerBackdrop()
     val navItems = listOf("Today" to Icons.Rounded.Today, "Medicines" to ImageVector.vectorResource(R.drawable.ic_pill), "History" to Icons.Rounded.Insights, "Profile" to Icons.Rounded.Person)
@@ -207,7 +208,12 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
                             0 -> Today(app)
                             1 -> Medicines(app) { editing = it }
                             2 -> History(app)
-                            else -> if (inSettings) SettingsScreen(app) { inSettings = false } else ProfileScreen(app) { inSettings = true }
+                            else -> when (page) {
+                                1 -> SettingsScreen(app) { page = 0 }
+                                2 -> AppointmentsScreen(app) { page = 0 }
+                                3 -> HealthLogScreen(app) { page = 0 }
+                                else -> ProfileScreen(app) { page = it }
+                            }
                         }
                     }
                 }

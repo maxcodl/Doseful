@@ -57,6 +57,22 @@ def main() -> None:
         "version": 1,
         "profile": {"name": "Max", "email": "", "age": 29, "gender": "Male", "heightCm": 178.0, "weightKg": 72.5, "metric": True, "onboarded": True},
         "avatar": "",
+        "medicalId": {
+            "blood": "O+", "allergies": "Penicillin", "conditions": "Mild asthma",
+            "doctor": "Dr. Sharma", "doctorPhone": "+91 90000 00001", "emergencyName": "Sam", "emergencyPhone": "+91 90000 00002",
+        },
+        "appointments": [
+            {"id": 1, "title": "Check-up", "doctor": "Dr. Sharma", "place": "City Clinic, 12 Park Road", "phone": "+91 90000 00001",
+             "epochDay": today + 3, "minuteOfDay": 10 * 60 + 30, "notes": "Bring last blood test report", "remindDayBefore": True, "remindHourBefore": True},
+            {"id": 2, "title": "Blood test", "doctor": "", "place": "Metro Lab", "phone": "",
+             "epochDay": today + 12, "minuteOfDay": 8 * 60, "notes": "Fasting", "remindDayBefore": True, "remindHourBefore": False},
+            {"id": 3, "title": "Dental cleaning", "doctor": "Dr. Rao", "place": "Smile Dental", "phone": "",
+             "epochDay": today - 20, "minuteOfDay": 16 * 60, "notes": "", "remindDayBefore": False, "remindHourBefore": False},
+        ],
+        "measurements": (
+            [{"type": "weight", "value": round(72.5 - i * 0.3, 1), "value2": 0.0, "recordedAt": int(time.time() * 1000) - (9 - i) * 86_400_000, "note": ""} for i in range(10)]
+            + [{"type": "bp", "value": 118 + (i % 3) * 3, "value2": 78 + (i % 2) * 2, "recordedAt": int(time.time() * 1000) - (7 - i) * 86_400_000, "note": ""} for i in range(8)]
+        ),
         "medicines": medicines,
         "schedules": schedules,
         "logs": logs,

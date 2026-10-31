@@ -44,6 +44,31 @@ data class DoseLog(
     val loggedAt: Long = System.currentTimeMillis(),
 )
 
+@Entity
+data class Appointment(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val title: String,
+    val doctor: String = "",
+    val place: String = "",
+    val phone: String = "",
+    val epochDay: Long,
+    val minuteOfDay: Int,
+    val notes: String = "",
+    val remindDayBefore: Boolean = true,
+    val remindHourBefore: Boolean = true,
+)
+
+/** One health reading. [type] is a Vital key (weight, bp, sugar, heart, temp); [value2] is diastolic for blood pressure. */
+@Entity
+data class Measurement(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val type: String,
+    val value: Float,
+    val value2: Float = 0f,
+    val recordedAt: Long = System.currentTimeMillis(),
+    val note: String = "",
+)
+
 data class ScheduleWithMedicine(
     @Embedded val schedule: Schedule,
     @Relation(parentColumn = "medicineId", entityColumn = "id") val medicine: Medicine,
@@ -79,7 +104,21 @@ interface AppDao {
     @Query("UPDATE Medicine SET stock = MAX(stock - :n, 0) WHERE id = :id") suspend fun consume(id: Long, n: Int)
     @Query("UPDATE Medicine SET stock = stock + :n WHERE id = :id") suspend fun restock(id: Long, n: Int)
 
+    @Query("SELECT * FROM Appointment ORDER BY epochDay, minuteOfDay") fun appointments(): Flow<List<Appointment>>
+    @Query("SELECT * FROM Appointment") suspend fun appointmentsNow(): List<Appointment>
+    @Query("SELECT * FROM Appointment WHERE id = :id") suspend fun appointment(id: Long): Appointment?
+    @Insert suspend fun insert(a: Appointment): Long
+    @Update suspend fun update(a: Appointment)
+    @Delete suspend fun delete(a: Appointment)
+
+    @Query("SELECT * FROM Measurement ORDER BY recordedAt") fun measurements(): Flow<List<Measurement>>
+    @Query("SELECT * FROM Measurement") suspend fun measurementsNow(): List<Measurement>
+    @Insert suspend fun insert(m: Measurement): Long
+    @Delete suspend fun delete(m: Measurement)
+
     // Backup / restore
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertAppointments(l: List<Appointment>)
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertMeasurements(l: List<Measurement>)
     @Query("SELECT * FROM Medicine") suspend fun allMedicines(): List<Medicine>
     @Query("SELECT * FROM Schedule") suspend fun allSchedules(): List<Schedule>
     @Query("SELECT * FROM DoseLog") suspend fun allLogs(): List<DoseLog>
@@ -93,7 +132,11 @@ class Converters {
     @TypeConverter fun fromStatus(s: DoseStatus) = s.name
 }
 
-@Database(entities = [Medicine::class, Schedule::class, DoseLog::class], version = 2)
+@Database(
+    entities = [Medicine::class, Schedule::class, DoseLog::class, Appointment::class, Measurement::class],
+    version = 3,
+    autoMigrations = [AutoMigration(from = 2, to = 3)],
+)
 @TypeConverters(Converters::class)
 abstract class Db : RoomDatabase() {
     abstract fun dao(): AppDao

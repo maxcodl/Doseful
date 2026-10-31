@@ -15,6 +15,16 @@ object Backup {
             .put("version", VERSION)
             .put("profile", app.profile.value.toJson())
             .put("avatar", app.profile.avatarBase64() ?: "")
+            .put("medicalId", app.profile.medical.toJson())
+            .put("appointments", arr(d.appointmentsNow()) {
+                JSONObject().put("id", it.id).put("title", it.title).put("doctor", it.doctor).put("place", it.place).put("phone", it.phone)
+                    .put("epochDay", it.epochDay).put("minuteOfDay", it.minuteOfDay).put("notes", it.notes)
+                    .put("remindDayBefore", it.remindDayBefore).put("remindHourBefore", it.remindHourBefore)
+            })
+            .put("measurements", arr(d.measurementsNow()) {
+                JSONObject().put("type", it.type).put("value", it.value.toDouble()).put("value2", it.value2.toDouble())
+                    .put("recordedAt", it.recordedAt).put("note", it.note)
+            })
             .put("medicines", arr(d.allMedicines()) {
                 JSONObject().put("id", it.id).put("name", it.name).put("strength", it.strength).put("form", it.form)
                     .put("unitDose", it.unitDose).put("stock", it.stock).put("refillThreshold", it.refillThreshold)
@@ -42,11 +52,25 @@ object Backup {
         val logs = list("logs") { DoseLog(0, it.getLong("scheduleId"), it.getLong("epochDay"), DoseStatus.valueOf(it.getString("status")), it.optLong("loggedAt")) }
         val profile = Profile.fromJson(j.getJSONObject("profile"))
         val avatar = j.optString("avatar")
+        val medical = j.optJSONObject("medicalId")?.let { MedicalId.fromJson(it) } ?: MedicalId()
+        fun <T> optList(key: String, f: (JSONObject) -> T) = j.optJSONArray(key)?.let { a -> List(a.length()) { f(a.getJSONObject(it)) } } ?: emptyList()
+        val appts = optList("appointments") {
+            Appointment(it.getLong("id"), it.getString("title"), it.optString("doctor"), it.optString("place"), it.optString("phone"),
+                it.getLong("epochDay"), it.getInt("minuteOfDay"), it.optString("notes"), it.optBoolean("remindDayBefore", true), it.optBoolean("remindHourBefore", true))
+        }
+        val measures = optList("measurements") {
+            Measurement(0, it.getString("type"), it.getDouble("value").toFloat(), it.optDouble("value2", 0.0).toFloat(), it.optLong("recordedAt"), it.optString("note"))
+        }
 
         val d = app.db.dao()
-        if (!app.demo) d.allSchedules().forEach { Alarms.cancel(app.ctx, it.id) }
+        if (!app.demo) {
+            d.allSchedules().forEach { Alarms.cancel(app.ctx, it.id) }
+            d.appointmentsNow().forEach { Alarms.cancelAppointment(app.ctx, it.id) }
+        }
         app.db.clearAllTables()
         d.insertMedicines(meds); d.insertSchedules(scheds); d.insertLogs(logs)
+        d.insertAppointments(appts); d.insertMeasurements(measures)
+        app.profile.saveMedical(medical)
         app.profile.save(profile.copy(onboarded = true))
         app.profile.setAvatarBase64(avatar)
         if (!app.demo) Alarms.rescheduleAll(app.ctx, d)

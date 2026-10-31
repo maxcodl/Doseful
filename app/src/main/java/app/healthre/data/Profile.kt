@@ -41,6 +41,29 @@ data class Profile(
     }
 }
 
+/** Emergency information shown on the Profile page. All fields are optional. */
+data class MedicalId(
+    val blood: String = "",
+    val allergies: String = "",
+    val conditions: String = "",
+    val doctor: String = "",
+    val doctorPhone: String = "",
+    val emergencyName: String = "",
+    val emergencyPhone: String = "",
+) {
+    val isEmpty get() = listOf(blood, allergies, conditions, doctor, doctorPhone, emergencyName, emergencyPhone).all { it.isBlank() }
+
+    fun toJson() = JSONObject().put("blood", blood).put("allergies", allergies).put("conditions", conditions).put("doctor", doctor)
+        .put("doctorPhone", doctorPhone).put("emergencyName", emergencyName).put("emergencyPhone", emergencyPhone)
+
+    companion object {
+        fun fromJson(j: JSONObject) = MedicalId(
+            j.optString("blood"), j.optString("allergies"), j.optString("conditions"), j.optString("doctor"),
+            j.optString("doctorPhone"), j.optString("emergencyName"), j.optString("emergencyPhone"),
+        )
+    }
+}
+
 class ProfileStore(ctx: Context, prefsName: String = "profile", avatarName: String = "avatar.jpg") {
     private val appCtx = ctx.applicationContext
     private val sp = ctx.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
@@ -48,6 +71,22 @@ class ProfileStore(ctx: Context, prefsName: String = "profile", avatarName: Stri
 
     var avatarVersion by mutableIntStateOf(0)
         private set
+
+    var medical by mutableStateOf(
+        MedicalId(
+            sp.getString("m_blood", "") ?: "", sp.getString("m_allergies", "") ?: "", sp.getString("m_conditions", "") ?: "",
+            sp.getString("m_doctor", "") ?: "", sp.getString("m_doctor_phone", "") ?: "",
+            sp.getString("m_em_name", "") ?: "", sp.getString("m_em_phone", "") ?: "",
+        ),
+    )
+        private set
+
+    fun saveMedical(m: MedicalId) {
+        sp.edit().putString("m_blood", m.blood).putString("m_allergies", m.allergies).putString("m_conditions", m.conditions)
+            .putString("m_doctor", m.doctor).putString("m_doctor_phone", m.doctorPhone)
+            .putString("m_em_name", m.emergencyName).putString("m_em_phone", m.emergencyPhone).apply()
+        medical = m
+    }
 
     /** Erases everything this store holds (used to discard demo data). */
     fun wipe() { sp.edit().clear().apply(); avatarFile.delete() }
@@ -134,6 +173,12 @@ class ThemeSettings(ctx: Context) {
         private set
     var amoled by mutableStateOf(sp.getBoolean("amoled", false))
         private set
+
+    /** Ask for the device screen lock (PIN, pattern or biometric) when Doseful opens. */
+    var appLock by mutableStateOf(sp.getBoolean("app_lock", false))
+        private set
+
+    fun updateAppLock(b: Boolean) { sp.edit().putBoolean("app_lock", b).apply(); appLock = b }
 
     /** True (default) = reminders ring like an alarm; false = a normal notification sound. */
     var reminderAlarm by mutableStateOf(sp.getBoolean("reminder_alarm", true))

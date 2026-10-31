@@ -47,7 +47,7 @@ private fun SettingRow(title: String, detail: String? = null, trailing: ImageVec
 /** You: photo and personal details. App settings live on their own page, opened with the gear. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun ProfileScreen(app: AppEnv, onOpenSettings: () -> Unit) {
+fun ProfileScreen(app: AppEnv, onOpen: (Int) -> Unit) {
     val ctx = LocalContext.current
     val p = app.profile.value
     val form = remember { ProfileForm(p) }
@@ -57,7 +57,7 @@ fun ProfileScreen(app: AppEnv, onOpenSettings: () -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = LocalListBottom.current - 56.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Profile", Modifier.weight(1f), style = MaterialTheme.typography.displaySmall)
-            FilledTonalIconButton(onOpenSettings) { Icon(Icons.Rounded.Settings, "Settings") }
+            FilledTonalIconButton({ onOpen(1) }) { Icon(Icons.Rounded.Settings, "Settings") }
         }
 
         Surface(Modifier.fillMaxWidth(), shape = corner(32), color = c.surfaceContainerLow) {
@@ -71,7 +71,12 @@ fun ProfileScreen(app: AppEnv, onOpenSettings: () -> Unit) {
             }
         }
 
-        SectionCard("Details", Icons.Rounded.Person, collapsible = true, startOpen = true) {
+        StatsRow(app)
+        MedicalIdCard(app)
+        AppointmentsSummary(app) { onOpen(2) }
+        HealthSummary(app) { onOpen(3) }
+
+        SectionCard("Details", Icons.Rounded.Person, collapsible = true) {
             ProfileFields(form)
             Button({ app.profile.save(form.build()); toast(ctx, "Saved") }, modifier = Modifier.fillMaxWidth(), enabled = form.name.isNotBlank(), shapes = ButtonDefaults.shapes()) {
                 Text("Save")
@@ -113,6 +118,20 @@ fun SettingsScreen(app: AppEnv, onBack: () -> Unit) {
         SectionCard("Theme", Icons.Rounded.Palette, collapsible = true) { AppearanceSection(app) }
         SectionCard("Navigation bar", Icons.Rounded.ViewDay, collapsible = true) { NavBarEditor(app) }
         SectionCard("Glass", Icons.Rounded.BlurOn, collapsible = true) { GlassEditor(app) }
+
+        SectionCard("Privacy", Icons.Rounded.Lock, collapsible = true) {
+            val km = ctx.getSystemService(android.app.KeyguardManager::class.java)
+            ListItem(
+                headlineContent = { Text("App lock") },
+                supportingContent = { Text("Ask for your screen lock when Doseful opens") },
+                trailingContent = {
+                    Switch(app.theme.appLock, { on ->
+                        if (on && !km.isDeviceSecure) toast(ctx, "Set a screen lock in your phone settings first") else app.theme.updateAppLock(on)
+                    })
+                },
+                colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
+            )
+        }
 
         SectionCard("Reminders", Icons.Rounded.Notifications, collapsible = true) {
             Choice(listOf("Alarm" to true, "Notification" to false), app.theme.reminderAlarm, { app.theme.updateReminderAlarm(it) })
