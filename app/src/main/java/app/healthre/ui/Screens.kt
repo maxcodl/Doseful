@@ -24,6 +24,13 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -92,40 +99,33 @@ fun Root(app: AppEnv) {
 /** How much room lists leave at the bottom: more when the floating bar and button overlay the content. */
 internal val LocalListBottom = androidx.compose.runtime.compositionLocalOf { 96.dp }
 
-/** One destination in the floating bar. Layout follows the bar [type]; the selected look follows [selection]. */
+/** One destination in the floating bar. The selection highlight is drawn by the bar, so it can glide between items. */
 @Composable
 private fun NavItem(
     label: String, icon: ImageVector, selected: Boolean, type: Int, selection: Int,
-    shape: androidx.compose.ui.graphics.Shape, modifier: Modifier = Modifier, onClick: () -> Unit,
+    modifier: Modifier = Modifier, onClick: () -> Unit,
 ) {
     val c = MaterialTheme.colorScheme
-    val fgTarget = when { !selected -> c.onSurface; selection == 0 -> c.onPrimaryContainer; else -> c.primary }
-    val bgTarget = when {
-        !selected -> Color.Transparent
-        selection == 0 -> c.primaryContainer.copy(alpha = 0.9f)
-        selection == 2 -> c.onSurface.copy(alpha = 0.16f)
-        else -> Color.Transparent
-    }
     val animScale = LocalAnimScale.current
+    val fgTarget = when { !selected -> c.onSurface; selection == 0 -> c.onPrimaryContainer; else -> c.primary }
     val fg by animateColorAsState(fgTarget, tw(450, animScale), label = "fg")
-    val bg by animateColorAsState(bgTarget, tw(450, animScale), label = "bg")
-    val outline = if (selected && selection == 1) Modifier.border(1.5.dp, c.primary, shape) else Modifier
-    val dot = if (selected && selection == 3) Modifier.drawBehind {
-        drawCircle(c.primary, 2.5.dp.toPx(), Offset(size.width / 2f, size.height - 3.dp.toPx()))
-    } else Modifier
-    val base = modifier.clip(shape).background(bg).then(outline).then(dot).clickable(onClick = onClick)
+    // The icon pops with a little bounce when its tab is selected.
+    val pop by animateFloatAsState(if (selected) 1.18f else 1f, spring(dampingRatio = 0.4f, stiffness = 320f / animScale.coerceIn(0.3f, 3f)), label = "pop")
+    val tint = fg
+    val base = modifier.clickable(onClick = onClick)
+    val iconMod = Modifier.graphicsLayer { scaleX = pop; scaleY = pop }
     when (type) {
-        1 -> Box(base.padding(horizontal = 18.dp, vertical = 12.dp), contentAlignment = Alignment.Center) { Icon(icon, label, tint = fg) }
+        1 -> Box(base.padding(horizontal = 18.dp, vertical = 12.dp), contentAlignment = Alignment.Center) { Icon(icon, label, iconMod, tint = tint) }
         2, 3 -> Column(base.padding(horizontal = 14.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(icon, label, tint = fg)
-            Text(label, style = MaterialTheme.typography.labelSmall, color = fg, maxLines = 1)
+            Icon(icon, label, iconMod, tint = tint)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = tint, maxLines = 1)
         }
         else -> Row(
             base.padding(horizontal = if (selected) 20.dp else 16.dp, vertical = 12.dp).animateContentSize(tw(450, animScale)),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Icon(icon, label, tint = fg)
-            if (selected) Text(label, style = MaterialTheme.typography.labelLarge, color = fg)
+            Icon(icon, label, iconMod, tint = tint)
+            if (selected) Text(label, style = MaterialTheme.typography.labelLarge, color = tint)
         }
     }
 }
@@ -133,10 +133,13 @@ private fun NavItem(
 /**
  * Liquid Glass bar that floats over the content (no bar behind it, so the page scrolls underneath).
  * [backdrop] holds the page content it refracts; [g] is the user's glass style, including bar type and corner radius.
+ * One highlight slides and stretches to the selected item with a springy motion.
  */
 @Composable
 private fun FloatingNav(items: List<Pair<String, ImageVector>>, selected: Int, backdrop: com.kyant.backdrop.backdrops.LayerBackdrop, g: GlassStyle, onSelect: (Int) -> Unit) {
     val c = MaterialTheme.colorScheme
+    val animScale = LocalAnimScale.current
+    val density = androidx.compose.ui.platform.LocalDensity.current
     val tint = c.surfaceContainerHigh.copy(alpha = g.tint)
     val edge = when (g.edgeStyle) { 1 -> Highlight.Ambient; 2 -> Highlight.Plain; else -> Highlight.Default }
     // Corners are a percentage of the shape's own size, so they can never exceed fully round (which would break the glass shader).
@@ -144,33 +147,64 @@ private fun FloatingNav(items: List<Pair<String, ImageVector>>, selected: Int, b
     val barShape = RoundedCornerShape(percent)
     val itemShape = RoundedCornerShape((g.selRadius / 2f).toInt().coerceIn(0, 50))
     val dock = g.type == 3
+
+    // Where each item sits inside the bar, so the highlight knows where to glide.
+    val spots = remember { mutableStateMapOf<Int, IntArray>() }
+    val spot = spots[selected]
+    val glide = if (animScale <= 0f) snap<Int>() else spring<Int>(dampingRatio = 0.62f, stiffness = 380f / animScale.coerceIn(0.3f, 3f))
+    val ix by animateIntAsState(spot?.get(0) ?: 0, glide, label = "ix")
+    val iy by animateIntAsState(spot?.get(1) ?: 0, glide, label = "iy")
+    val iw by animateIntAsState(spot?.get(2) ?: 0, glide, label = "iw")
+    val ih by animateIntAsState(spot?.get(3) ?: 0, glide, label = "ih")
+
     Box(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = if (dock) 12.dp else 24.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
         // The library only recomputes its lens and edge shader when the size changes, so rebuild the bar when the corner radius changes.
         androidx.compose.runtime.key(percent, g.type) {
-        Row(
-            Modifier
-                .then(if (dock) Modifier.fillMaxWidth() else Modifier)
-                .drawBackdrop(
-                    backdrop = backdrop,
-                    shape = { barShape },
-                    effects = {
-                        if (g.saturation != 1f) colorControls(saturation = g.saturation)
-                        blur(g.blur.dp.toPx())
-                        lens(g.lensHeight.dp.toPx(), g.lensAmount.dp.toPx(), g.depth, g.chromatic)
-                    },
-                    highlight = if (g.edgeWidth > 0f) ({ edge.copy(width = g.edgeWidth.dp, blurRadius = (g.edgeWidth / 2f).dp, alpha = g.edgeAlpha) }) else null,
-                    shadow = if (g.shadowRadius > 0f && g.shadowAlpha > 0f) ({ Shadow(radius = g.shadowRadius.dp, color = Color.Black.copy(alpha = g.shadowAlpha)) }) else null,
-                    innerShadow = if (g.innerAlpha > 0f) ({ InnerShadow(radius = g.innerRadius.dp, color = Color.White.copy(alpha = g.innerAlpha)) }) else null,
-                    onDrawSurface = { drawRect(tint) },
-                )
-                .padding(6.dp),
-            horizontalArrangement = if (dock) Arrangement.SpaceEvenly else Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            items.forEachIndexed { i, (label, icon) ->
-                NavItem(label, icon, i == selected, g.type, g.selection, itemShape, if (dock) Modifier.weight(1f) else Modifier) { onSelect(i) }
+            Box(
+                Modifier
+                    .then(if (dock) Modifier.fillMaxWidth() else Modifier)
+                    .drawBackdrop(
+                        backdrop = backdrop,
+                        shape = { barShape },
+                        effects = {
+                            if (g.saturation != 1f) colorControls(saturation = g.saturation)
+                            blur(g.blur.dp.toPx())
+                            lens(g.lensHeight.dp.toPx(), g.lensAmount.dp.toPx(), g.depth, g.chromatic)
+                        },
+                        highlight = if (g.edgeWidth > 0f) ({ edge.copy(width = g.edgeWidth.dp, blurRadius = (g.edgeWidth / 2f).dp, alpha = g.edgeAlpha) }) else null,
+                        shadow = if (g.shadowRadius > 0f && g.shadowAlpha > 0f) ({ Shadow(radius = g.shadowRadius.dp, color = Color.Black.copy(alpha = g.shadowAlpha)) }) else null,
+                        innerShadow = if (g.innerAlpha > 0f) ({ InnerShadow(radius = g.innerRadius.dp, color = Color.White.copy(alpha = g.innerAlpha)) }) else null,
+                        onDrawSurface = { drawRect(tint) },
+                    )
+                    .padding(6.dp),
+            ) {
+                if (spot != null) {
+                    val w = with(density) { iw.toDp() }
+                    val h = with(density) { ih.toDp() }
+                    when (g.selection) {
+                        0 -> Box(Modifier.offset { IntOffset(ix, iy) }.size(w, h).clip(itemShape).background(c.primaryContainer.copy(alpha = 0.9f)))
+                        1 -> Box(Modifier.offset { IntOffset(ix, iy) }.size(w, h).border(1.5.dp, c.primary, itemShape))
+                        2 -> Box(Modifier.offset { IntOffset(ix, iy) }.size(w, h).clip(itemShape).background(c.onSurface.copy(alpha = 0.16f)))
+                        3 -> Box(Modifier.offset { IntOffset(ix + iw / 2 - with(density) { 2.5.dp.roundToPx() }, iy + ih - with(density) { 7.dp.roundToPx() }) }.size(5.dp).clip(CircleShape).background(c.primary))
+                    }
+                }
+                Row(
+                    Modifier.then(if (dock) Modifier.fillMaxWidth() else Modifier),
+                    horizontalArrangement = if (dock) Arrangement.SpaceEvenly else Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    items.forEachIndexed { i, (label, icon) ->
+                        NavItem(
+                            label, icon, i == selected, g.type, g.selection,
+                            (if (dock) Modifier.weight(1f) else Modifier).onGloballyPositioned {
+                                val p = it.positionInParent()
+                                val now = intArrayOf(p.x.toInt(), p.y.toInt(), it.size.width, it.size.height)
+                                if (spots[i]?.contentEquals(now) != true) spots[i] = now
+                            },
+                        ) { onSelect(i) }
+                    }
+                }
             }
-        }
         }
     }
 }

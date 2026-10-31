@@ -13,6 +13,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -95,50 +98,73 @@ private fun MedicalForm(m: MedicalId, onSave: (MedicalId) -> Unit, onCancel: () 
     }
 }
 
-/** One labelled line on the ID card, with an icon. Skipped when empty. */
+private fun splitItems(s: String) = s.split(',', ';', '\n').map { it.trim() }.filter { it.isNotEmpty() }
+
+/** A small rounded tag: used for each allergy and condition. */
 @Composable
-private fun CardLine(icon: ImageVector, label: String, value: String, big: Boolean) {
-    if (value.isBlank()) return
-    val fg = MaterialTheme.colorScheme.onPrimaryContainer
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
-        Icon(icon, null, Modifier.padding(top = 2.dp), tint = fg)
-        Column {
-            Text(label, style = MaterialTheme.typography.labelMedium, color = fg.copy(alpha = 0.75f))
-            Text(value, style = if (big) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodyLarge, color = fg)
+private fun Tag(text: String, icon: ImageVector?, bg: Color, fg: Color, big: Boolean) {
+    Surface(shape = CircleShape, color = bg) {
+        Row(Modifier.padding(horizontal = 14.dp, vertical = if (big) 9.dp else 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (icon != null) Icon(icon, null, Modifier.size(if (big) 20.dp else 16.dp), tint = fg)
+            Text(text, style = if (big) MaterialTheme.typography.titleMedium else MaterialTheme.typography.labelLarge, color = fg)
         }
     }
 }
 
 @Composable
-private fun CardCall(label: String, name: String, phone: String, big: Boolean) {
-    if (name.isBlank() && phone.isBlank()) return
+private fun Section(label: String, big: Boolean, content: @Composable () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            label.uppercase(),
+            style = MaterialTheme.typography.labelSmall.copy(letterSpacing = androidx.compose.ui.unit.TextUnit(1.5f, androidx.compose.ui.unit.TextUnitType.Sp)),
+            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+        )
+        content()
+    }
+}
+
+@Composable
+private fun ContactTile(label: String, name: String, phone: String, big: Boolean, modifier: Modifier) {
     val ctx = LocalContext.current
     val c = MaterialTheme.colorScheme
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Column(Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.labelMedium, color = c.onPrimaryContainer.copy(alpha = 0.75f))
-            Text(name.ifBlank { phone }, style = if (big) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodyLarge, color = c.onPrimaryContainer)
-            if (name.isNotBlank() && phone.isNotBlank()) Text(phone, style = MaterialTheme.typography.bodyMedium, color = c.onPrimaryContainer.copy(alpha = 0.85f))
+    Surface(modifier, shape = corner(20), color = c.surface.copy(alpha = 0.55f)) {
+        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.weight(1f)) {
+                Text(label, style = MaterialTheme.typography.labelMedium, color = c.onSurfaceVariant)
+                if (name.isBlank() && phone.isBlank()) Text("Not set", style = MaterialTheme.typography.bodyMedium, color = c.onSurfaceVariant.copy(alpha = 0.7f))
+                else {
+                    Text(name.ifBlank { phone }, style = if (big) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleSmall, color = c.onSurface, maxLines = 2)
+                    if (name.isNotBlank() && phone.isNotBlank()) Text(phone, style = MaterialTheme.typography.bodySmall, color = c.onSurfaceVariant, maxLines = 1)
+                }
+            }
+            if (phone.isNotBlank()) FilledIconButton(
+                { ctx.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))) },
+                Modifier.size(if (big) 52.dp else 40.dp),
+            ) { Icon(Icons.Rounded.Call, "Call $label") }
         }
-        if (phone.isNotBlank()) FilledIconButton(
-            { ctx.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))) },
-            Modifier.size(if (big) 56.dp else 44.dp),
-        ) { Icon(Icons.Rounded.Call, "Call $label") }
     }
 }
 
-/** The Medical ID as an ID card: photo, name, blood type badge, allergies, conditions and who to call. [big] is the emergency view. */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+/** The Medical ID as an ID card: gradient, photo, name, blood type badge, allergy and condition tags, and call tiles. [big] is the emergency view. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalLayoutApi::class)
 @Composable
 private fun MedicalCard(app: AppEnv, m: MedicalId, big: Boolean = false) {
     val c = MaterialTheme.colorScheme
     val p = app.profile.value
-    val photo = if (big) 84.dp else 64.dp
-    Surface(Modifier.fillMaxWidth(), shape = corner(28), color = c.primaryContainer) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    val fg = c.onPrimaryContainer
+    val photo = if (big) 88.dp else 64.dp
+    val allergies = splitItems(m.allergies)
+    val conditions = splitItems(m.conditions)
+    Box(Modifier.fillMaxWidth().clip(corner(28)).background(Brush.linearGradient(listOf(c.primaryContainer, c.tertiaryContainer)))) {
+        // Soft decorative shapes behind the content.
+        Box(Modifier.align(Alignment.TopEnd).offset(x = 56.dp, y = (-56).dp).size(200.dp).clip(MaterialShapes.Cookie12Sided.toShape()).background(fg.copy(alpha = 0.07f)))
+        Box(Modifier.align(Alignment.BottomStart).offset(x = (-40).dp, y = 44.dp).size(130.dp).clip(MaterialShapes.Clover4Leaf.toShape()).background(fg.copy(alpha = 0.06f)))
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Rounded.MedicalServices, null, tint = c.onPrimaryContainer)
-                Text("MEDICAL ID", style = MaterialTheme.typography.labelLarge.copy(letterSpacing = androidx.compose.ui.unit.TextUnit(2f, androidx.compose.ui.unit.TextUnitType.Sp)), color = c.onPrimaryContainer)
+                Icon(Icons.Rounded.MedicalServices, null, tint = fg)
+                Text("MEDICAL ID", style = MaterialTheme.typography.labelLarge.copy(letterSpacing = androidx.compose.ui.unit.TextUnit(2f, androidx.compose.ui.unit.TextUnitType.Sp)), color = fg)
+                Spacer(Modifier.weight(1f))
+                Text("Doseful", style = MaterialTheme.typography.labelMedium, color = fg.copy(alpha = 0.6f))
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 Avatar(app, photo)
@@ -146,20 +172,43 @@ private fun MedicalCard(app: AppEnv, m: MedicalId, big: Boolean = false) {
                     Text(
                         p.name.ifBlank { "Your name" },
                         style = (if (big) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.titleLarge).copy(fontWeight = FontWeight.Black),
-                        color = c.onPrimaryContainer,
+                        color = fg,
                     )
                     val facts = listOfNotNull(p.age?.let { "$it yrs" }, p.gender.ifBlank { null }, p.bmi?.let { "BMI %.1f".format(it) }).joinToString("  ·  ")
-                    if (facts.isNotEmpty()) Text(facts, style = MaterialTheme.typography.bodyMedium, color = c.onPrimaryContainer.copy(alpha = 0.85f))
+                    if (facts.isNotEmpty()) Text(facts, style = MaterialTheme.typography.bodyMedium, color = fg.copy(alpha = 0.85f))
                 }
-                if (m.blood.isNotBlank()) Box(Modifier.size(photo).clip(MaterialShapes.Cookie9Sided.toShape()).background(c.primary), contentAlignment = Alignment.Center) {
-                    Text(m.blood, style = (if (big) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.titleLarge).copy(fontWeight = FontWeight.Black), color = c.onPrimary)
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Box(Modifier.size(photo).clip(MaterialShapes.Cookie9Sided.toShape()).background(c.primary), contentAlignment = Alignment.Center) {
+                        Text(
+                            m.blood.ifBlank { "?" },
+                            style = (if (big) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.titleLarge).copy(fontWeight = FontWeight.Black),
+                            color = c.onPrimary,
+                        )
+                    }
+                    Text("BLOOD", style = MaterialTheme.typography.labelSmall, color = fg.copy(alpha = 0.7f))
                 }
             }
-            HorizontalDivider(color = c.onPrimaryContainer.copy(alpha = 0.2f))
-            CardLine(Icons.Rounded.Warning, "Allergies", m.allergies, big)
-            CardLine(Icons.Rounded.HealthAndSafety, "Conditions", m.conditions, big)
-            CardCall("Doctor", m.doctor, m.doctorPhone, big)
-            CardCall("Emergency contact", m.emergencyName, m.emergencyPhone, big)
+            Section("Allergies", big) {
+                if (allergies.isEmpty()) Text("None listed", style = MaterialTheme.typography.bodyMedium, color = fg.copy(alpha = 0.65f))
+                else FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    allergies.forEach { Tag(it, Icons.Rounded.Warning, c.errorContainer, c.onErrorContainer, big) }
+                }
+            }
+            Section("Conditions", big) {
+                if (conditions.isEmpty()) Text("None listed", style = MaterialTheme.typography.bodyMedium, color = fg.copy(alpha = 0.65f))
+                else FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    conditions.forEach { Tag(it, null, c.surface.copy(alpha = 0.55f), c.onSurface, big) }
+                }
+            }
+            Section("Contacts", big) {
+                if (big) Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    ContactTile("Emergency contact", m.emergencyName, m.emergencyPhone, true, Modifier.fillMaxWidth())
+                    ContactTile("Doctor", m.doctor, m.doctorPhone, true, Modifier.fillMaxWidth())
+                } else Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    ContactTile("Emergency", m.emergencyName, m.emergencyPhone, false, Modifier.weight(1f))
+                    ContactTile("Doctor", m.doctor, m.doctorPhone, false, Modifier.weight(1f))
+                }
+            }
         }
     }
 }
