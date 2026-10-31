@@ -5,24 +5,46 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import app.healthre.Alarms
-import app.healthre.RELEASES_URL
 import app.healthre.AppEnv
+import app.healthre.RELEASES_URL
+import app.healthre.SOURCE_URL
+import app.healthre.TELEGRAM_URL
+import app.healthre.TELEGRAM_USER
 import app.healthre.data.Backup
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
+
+/** One tappable settings line: title, optional detail, and an action label or icon on the right. */
+@Composable
+private fun SettingRow(title: String, detail: String? = null, trailing: ImageVector = Icons.Rounded.ChevronRight, onClick: () -> Unit) {
+    ListItem(
+        headlineContent = { Text(title) },
+        supportingContent = detail?.let { { Text(it) } },
+        trailingContent = { Icon(trailing, null) },
+        modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick),
+        colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
+    )
+}
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -31,6 +53,8 @@ fun ProfileScreen(app: AppEnv) {
     val scope = rememberCoroutineScope()
     val p = app.profile.value
     val form = remember { ProfileForm(p) }
+    val c = MaterialTheme.colorScheme
+    fun open(url: String) = ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
 
     val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) scope.launch {
@@ -47,80 +71,73 @@ fun ProfileScreen(app: AppEnv) {
     var confirmImport by remember { mutableStateOf(false) }
     val hasPhoto = app.profile.avatarVersion >= 0 && app.profile.avatar() != null
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Profile", style = MaterialTheme.typography.displaySmall)
 
-        Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(32.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
+        Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(32.dp), color = c.surfaceContainerLow) {
             Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 AvatarPicker(app, 132.dp)
                 Spacer(Modifier.height(8.dp))
                 Text(p.name, style = MaterialTheme.typography.headlineMedium)
                 val facts = listOfNotNull(p.age?.let { "$it yrs" }, p.bmi?.let { "BMI %.1f".format(it) }).joinToString("  ·  ")
-                if (facts.isNotEmpty()) Text(facts, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (facts.isNotEmpty()) Text(facts, color = c.onSurfaceVariant)
                 if (hasPhoto) TextButton({ app.profile.setAvatar(null) }) { Text("Remove photo") }
             }
         }
 
-        SectionCard("Details") {
+        SectionCard("Details", Icons.Rounded.Person) {
             ProfileFields(form)
             Button({ app.profile.save(form.build()); toast(ctx, "Saved") }, modifier = Modifier.fillMaxWidth(), enabled = form.name.isNotBlank(), shapes = ButtonDefaults.shapes()) {
-                Text("Save profile")
+                Text("Save")
             }
         }
 
-        SectionCard("Appearance") { AppearanceSection(app) }
+        SectionCard("Appearance", Icons.Rounded.Palette) { AppearanceSection(app) }
 
-        SectionCard("Backup") {
-            Text("A JSON file with your profile, photo, medicines and history.", style = MaterialTheme.typography.bodyMedium)
+        SectionCard("Reminders", Icons.Rounded.Notifications) {
+            Choice(listOf("Alarm" to true, "Notification" to false), app.theme.reminderAlarm, { app.theme.updateReminderAlarm(it) })
+            FilledTonalButton({ Alarms.notifyTest(ctx, app.theme.reminderAlarm) }, shapes = ButtonDefaults.shapes()) { Text("Send test reminder") }
+            if (!Alarms.canExact(ctx)) SettingRow("Exact alarms are off", "Reminders may be late") {
+                ctx.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${ctx.packageName}")))
+            }
+            if (!Alarms.backgroundAllowed(ctx)) SettingRow("Background activity is limited", "Battery saver may delay reminders") { Alarms.requestBackground(ctx) }
+            SettingRow("Persistent notification", "Show or hide today's summary") { Alarms.openChannelSettings(ctx, Alarms.CH_STATUS) }
+            SettingRow("Notification settings") {
+                ctx.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, ctx.packageName))
+            }
+        }
+
+        SectionCard("Backup", Icons.Rounded.Backup) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilledTonalButton({ export.launch("doseful-backup-${LocalDate.now()}.json") }, shapes = ButtonDefaults.shapes()) { Text("Export") }
                 OutlinedButton({ confirmImport = true }, shapes = ButtonDefaults.shapes()) { Text("Restore") }
             }
         }
 
-        SectionCard("Reminders") {
-            Text("Reminder sound", style = MaterialTheme.typography.titleSmall)
-            Choice(listOf("Alarm" to true, "Notification" to false), app.theme.reminderAlarm, { app.theme.updateReminderAlarm(it) })
-            Text(
-                if (app.theme.reminderAlarm) "Rings like an alarm, even on silent, until you tap Taken or Skip (up to 5 minutes)."
-                else "A normal notification sound and vibration.",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            FilledTonalButton({ Alarms.notifyTest(ctx, app.theme.reminderAlarm) }, shapes = ButtonDefaults.shapes()) { Text("Send test reminder") }
-            HorizontalDivider()
-            Text("Persistent notification", style = MaterialTheme.typography.titleSmall)
-            Text(
-                "Doseful keeps a quiet summary of today's doses in your notification shade. To hide it, turn off \"Today's progress\" in your phone's notification settings.",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            OutlinedButton({ Alarms.openChannelSettings(ctx, Alarms.CH_STATUS) }, shapes = ButtonDefaults.shapes()) { Text("Show or hide it") }
-            HorizontalDivider()
-            if (!Alarms.backgroundAllowed(ctx)) {
-                Text("Battery saver may delay reminders. Allow Doseful to run in the background.", color = MaterialTheme.colorScheme.error)
-                OutlinedButton({ Alarms.requestBackground(ctx) }, shapes = ButtonDefaults.shapes()) { Text("Allow background activity") }
-            }
-            if (!Alarms.canExact(ctx)) {
-                Text("Exact alarms are off, so reminders may be late.", color = MaterialTheme.colorScheme.error)
-                OutlinedButton({ ctx.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${ctx.packageName}"))) }, shapes = ButtonDefaults.shapes()) { Text("Allow exact alarms") }
-            }
-            OutlinedButton({ ctx.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, ctx.packageName)) }, shapes = ButtonDefaults.shapes()) { Text("Notification settings") }
-        }
-
-        SectionCard("About") {
+        SectionCard("About", Icons.Rounded.Info) {
             val version = remember { runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: "?" }
             Text("Doseful $version", style = MaterialTheme.typography.titleMedium)
-            Text(
-                "Doseful never connects to the internet, so it can not check for updates by itself. Tap below to see the latest release in your browser.",
-                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            FilledTonalButton({ ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(RELEASES_URL))) }, shapes = ButtonDefaults.shapes()) { Text("Check for updates") }
+            SettingRow("Check for updates", trailing = Icons.Rounded.OpenInNew) { open(RELEASES_URL) }
+            SettingRow("Source code", "GPL-3.0", Icons.Rounded.OpenInNew) { open(SOURCE_URL) }
+            SettingRow("Telegram", "@$TELEGRAM_USER", Icons.Rounded.OpenInNew) { open(TELEGRAM_URL) }
         }
 
-        Text(
-            "Free software under GPL-3.0. No network permission, no accounts.",
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-        )
+        // The heart and the coffee cup are icons tinted with the Material You palette, so they follow the wallpaper colours.
+        Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+            Text("Made with", style = MaterialTheme.typography.bodyLarge, color = c.onSurfaceVariant)
+            Spacer(Modifier.width(8.dp))
+            Box(Modifier.size(32.dp).clip(CircleShape).background(c.primaryContainer), contentAlignment = Alignment.Center) {
+                Icon(Icons.Rounded.Favorite, "love", Modifier.size(18.dp), tint = c.primary)
+            }
+            Spacer(Modifier.width(8.dp))
+            Text("and", style = MaterialTheme.typography.bodyLarge, color = c.onSurfaceVariant)
+            Spacer(Modifier.width(8.dp))
+            Box(Modifier.size(32.dp).clip(CircleShape).background(c.tertiaryContainer), contentAlignment = Alignment.Center) {
+                Icon(Icons.Rounded.Coffee, "coffee", Modifier.size(18.dp), tint = c.tertiary)
+            }
+            Spacer(Modifier.width(8.dp))
+            Text("by Max", style = MaterialTheme.typography.bodyLarge, color = c.onSurfaceVariant)
+        }
     }
     if (confirmImport) AlertDialog(
         onDismissRequest = { confirmImport = false },

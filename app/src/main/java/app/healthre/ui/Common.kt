@@ -18,6 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
@@ -91,12 +92,19 @@ fun AppField(
     )
 }
 
-/** Titled, rounded group used on the Profile tab and in onboarding. */
+/** Titled, rounded group with a coloured shape icon in its header. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun SectionCard(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Surface(Modifier.fillMaxWidth(), shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
+fun SectionCard(title: String, icon: ImageVector? = null, content: @Composable ColumnScope.() -> Unit) {
+    val c = MaterialTheme.colorScheme
+    Surface(Modifier.fillMaxWidth(), shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp), color = c.surfaceContainerLow) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (icon != null) Box(Modifier.size(40.dp).clip(MaterialShapes.Cookie6Sided.toShape()).background(c.primaryContainer), contentAlignment = Alignment.Center) {
+                    Icon(icon, null, Modifier.size(22.dp), tint = c.onPrimaryContainer)
+                }
+                Text(title, style = MaterialTheme.typography.titleLarge)
+            }
             content()
         }
     }
@@ -187,7 +195,6 @@ fun AppearanceSection(app: AppEnv) {
         val darkNow = s.themeMode == 2 || (s.themeMode == 0 && androidx.compose.foundation.isSystemInDarkTheme())
         ListItem(
             headlineContent = { Text("AMOLED black") },
-            supportingContent = { Text(if (darkNow) "True black backgrounds save battery on OLED screens" else "Applies when the dark theme is on") },
             trailingContent = { Switch(s.amoled, { s.updateAmoled(it) }) },
             colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
         )
