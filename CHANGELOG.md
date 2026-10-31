@@ -40,6 +40,7 @@ A big update: a redesigned Today screen, a much fuller Profile, a floating Liqui
 - **Typeface** is now Nunito (free, rounded), with its heaviest weight for big numbers.
 - **Demo mode** runs the whole app on fake data, using a separate throwaway database and profile that are wiped on exit.
 - Notification text reads "Time to take 1 tablet · 500 mg" and uses the app's pill icon.
+- The Medical ID card shows only what you have filled in, with allergies and conditions side by side, and contact tiles only for contacts you have added.
 - Switching tabs keeps every page loaded, so there is no blank or black page and scroll positions are remembered.
 - The database upgraded to version 3 with an automatic migration. Existing data is kept.
 

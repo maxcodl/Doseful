@@ -188,25 +188,32 @@ private fun MedicalCard(app: AppEnv, m: MedicalId, big: Boolean = false) {
                     Text("BLOOD", style = MaterialTheme.typography.labelSmall, color = fg.copy(alpha = 0.7f))
                 }
             }
-            Section("Allergies", big) {
-                if (allergies.isEmpty()) Text("None listed", style = MaterialTheme.typography.bodyMedium, color = fg.copy(alpha = 0.65f))
-                else FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    allergies.forEach { Tag(it, Icons.Rounded.Warning, c.errorContainer, c.onErrorContainer, big) }
+            // Only what you have filled in is shown. Allergies and conditions sit side by side; contacts too.
+            if (allergies.isNotEmpty() || conditions.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                if (allergies.isNotEmpty()) Box(Modifier.weight(1f)) {
+                    Section("Allergies", big) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            allergies.forEach { Tag(it, Icons.Rounded.Warning, c.errorContainer, c.onErrorContainer, big) }
+                        }
+                    }
+                }
+                if (conditions.isNotEmpty()) Box(Modifier.weight(1f)) {
+                    Section("Conditions", big) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            conditions.forEach { Tag(it, null, c.surface.copy(alpha = 0.55f), c.onSurface, big) }
+                        }
+                    }
                 }
             }
-            Section("Conditions", big) {
-                if (conditions.isEmpty()) Text("None listed", style = MaterialTheme.typography.bodyMedium, color = fg.copy(alpha = 0.65f))
-                else FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    conditions.forEach { Tag(it, null, c.surface.copy(alpha = 0.55f), c.onSurface, big) }
-                }
-            }
-            Section("Contacts", big) {
+            val hasEmergency = m.emergencyName.isNotBlank() || m.emergencyPhone.isNotBlank()
+            val hasDoctor = m.doctor.isNotBlank() || m.doctorPhone.isNotBlank()
+            if (hasEmergency || hasDoctor) Section("Contacts", big) {
                 if (big) Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    ContactTile("Emergency contact", m.emergencyName, m.emergencyPhone, true, Modifier.fillMaxWidth())
-                    ContactTile("Doctor", m.doctor, m.doctorPhone, true, Modifier.fillMaxWidth())
+                    if (hasEmergency) ContactTile("Emergency contact", m.emergencyName, m.emergencyPhone, true, Modifier.fillMaxWidth())
+                    if (hasDoctor) ContactTile("Doctor", m.doctor, m.doctorPhone, true, Modifier.fillMaxWidth())
                 } else Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    ContactTile("Emergency", m.emergencyName, m.emergencyPhone, false, Modifier.weight(1f))
-                    ContactTile("Doctor", m.doctor, m.doctorPhone, false, Modifier.weight(1f))
+                    if (hasEmergency) ContactTile("Emergency", m.emergencyName, m.emergencyPhone, false, Modifier.weight(1f))
+                    if (hasDoctor) ContactTile("Doctor", m.doctor, m.doctorPhone, false, Modifier.weight(1f))
                 }
             }
         }
