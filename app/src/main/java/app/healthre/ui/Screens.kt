@@ -106,7 +106,7 @@ internal fun Today(app: AppEnv) {
     val done = list.count { logs[it.schedule.id]?.status == DoseStatus.TAKEN }
     val name = app.profile.value.name.substringBefore(' ')
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(if (name.isBlank()) "Today" else "Hi, $name", Modifier.weight(1f), style = MaterialTheme.typography.displaySmall)
@@ -148,7 +148,7 @@ internal fun Medicines(app: AppEnv, onEdit: (Medicine) -> Unit) {
     val meds by dao.medicines().collectAsState(emptyList())
     val scope = rememberCoroutineScope()
     var deleting by remember { mutableStateOf<Medicine?>(null) }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Text("Medicines", style = MaterialTheme.typography.displaySmall) }
         if (meds.isEmpty()) item { Text("No medicines yet.") }
         items(meds, key = { it.id }) { m ->
@@ -308,7 +308,7 @@ internal fun History(app: AppEnv) {
 
     val card = MaterialTheme.colorScheme.surfaceContainerLow
     val cardShape = RoundedCornerShape(28.dp)
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item { Text("History", style = MaterialTheme.typography.displaySmall) }
         item {
             Surface(Modifier.fillMaxWidth(), shape = cardShape, color = card) {
