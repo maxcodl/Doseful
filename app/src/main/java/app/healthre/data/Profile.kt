@@ -1,0 +1,113 @@
+package app.healthre.data
+
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
+import android.net.Uri
+import android.os.Build
+import android.util.Base64
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import org.json.JSONObject
+import java.io.File
+
+data class Profile(
+    val name: String = "",
+    val email: String = "",
+    val age: Int? = null,
+    val gender: String = "",
+    val heightCm: Float? = null,
+    val weightKg: Float? = null,
+    val metric: Boolean = true,
+    val onboarded: Boolean = false,
+) {
+    val bmi: Float? get() = if (heightCm != null && weightKg != null && heightCm > 0) weightKg / ((heightCm / 100) * (heightCm / 100)) else null
+
+    fun toJson() = JSONObject().put("name", name).put("email", email).put("age", age ?: JSONObject.NULL)
+        .put("gender", gender).put("heightCm", heightCm?.toDouble() ?: JSONObject.NULL)
+        .put("weightKg", weightKg?.toDouble() ?: JSONObject.NULL).put("metric", metric).put("onboarded", onboarded)
+
+    companion object {
+        fun fromJson(j: JSONObject) = Profile(
+            j.optString("name"), j.optString("email"),
+            if (j.isNull("age")) null else j.optInt("age"), j.optString("gender"),
+            if (j.isNull("heightCm")) null else j.optDouble("heightCm").toFloat(),
+            if (j.isNull("weightKg")) null else j.optDouble("weightKg").toFloat(),
+            j.optBoolean("metric", true), j.optBoolean("onboarded", true),
+        )
+    }
+}
+
+class ProfileStore(ctx: Context, prefsName: String = "profile", avatarName: String = "avatar.jpg") {
+    private val appCtx = ctx.applicationContext
+    private val sp = ctx.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+    private val avatarFile = File(appCtx.filesDir, avatarName)
+
+    var avatarVersion by mutableIntStateOf(0)
+        private set
+
+    /** Erases everything this store holds (used to discard demo data). */
+    fun wipe() { sp.edit().clear().apply(); avatarFile.delete() }
+
+    fun avatar(): Bitmap? = if (avatarFile.exists()) BitmapFactory.decodeFile(avatarFile.path) else null
+
+    /** Decodes [uri] (EXIF-aware on API 28+), centre-crops to a 384px square and stores it app-privately. */
+    fun setAvatar(uri: Uri?) {
+        if (uri == null) { avatarFile.delete() } else {
+            val src: Bitmap = if (Build.VERSION.SDK_INT >= 28) {
+                ImageDecoder.decodeBitmap(ImageDecoder.createSource(appCtx.contentResolver, uri)) { d, info, _ ->
+                    d.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+                    val s = 1024f / maxOf(info.size.width, info.size.height)
+                    if (s < 1f) d.setTargetSize((info.size.width * s).toInt(), (info.size.height * s).toInt())
+                }
+            } else appCtx.contentResolver.openInputStream(uri)!!.use { BitmapFactory.decodeStream(it)!! }
+            val side = minOf(src.width, src.height)
+            val sq = Bitmap.createBitmap(src, (src.width - side) / 2, (src.height - side) / 2, side, side)
+            val out = Bitmap.createScaledBitmap(sq, 384, 384, true)
+            avatarFile.outputStream().use { out.compress(Bitmap.CompressFormat.JPEG, 88, it) }
+        }
+        avatarVersion++
+    }
+
+    fun avatarBase64(): String? = if (avatarFile.exists()) Base64.encodeToString(avatarFile.readBytes(), Base64.NO_WRAP) else null
+
+    fun setAvatarBase64(b64: String) {
+        if (b64.isBlank()) avatarFile.delete() else avatarFile.writeBytes(Base64.decode(b64, Base64.NO_WRAP))
+        avatarVersion++
+    }
+
+    var value by mutableStateOf(
+        Profile(
+            sp.getString("name", "") ?: "", sp.getString("email", "") ?: "",
+            sp.getString("age", "")?.toIntOrNull(), sp.getString("gender", "") ?: "",
+            sp.getString("height", "")?.toFloatOrNull(), sp.getString("weight", "")?.toFloatOrNull(),
+            sp.getBoolean("metric", true), sp.getBoolean("onboarded", false),
+        ),
+    )
+        private set
+
+    fun save(p: Profile) {
+        sp.edit().putString("name", p.name).putString("email", p.email).putString("age", p.age?.toString() ?: "")
+            .putString("gender", p.gender).putString("height", p.heightCm?.toString() ?: "")
+            .putString("weight", p.weightKg?.toString() ?: "").putBoolean("metric", p.metric)
+            .putBoolean("onboarded", p.onboarded).apply()
+        value = p
+    }
+}
+
+/** Theme choice. One instance is shared by the real app and the demo, because it is a device preference. */
+class ThemeSettings(ctx: Context) {
+    private val sp = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
+
+    /** 0 = system, 1 = light, 2 = dark. */
+    var themeMode by mutableIntStateOf(sp.getInt("theme", 0))
+        private set
+    var amoled by mutableStateOf(sp.getBoolean("amoled", false))
+        private set
+
+    fun updateTheme(m: Int) { sp.edit().putInt("theme", m).apply(); themeMode = m }
+    fun updateAmoled(b: Boolean) { sp.edit().putBoolean("amoled", b).apply(); amoled = b }
+}

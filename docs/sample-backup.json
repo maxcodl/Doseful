@@ -1,0 +1,668 @@
+{
+  "version": 1,
+  "profile": {
+    "name": "Max",
+    "email": "",
+    "age": 29,
+    "gender": "Male",
+    "heightCm": 178.0,
+    "weightKg": 72.5,
+    "metric": true,
+    "onboarded": true
+  },
+  "avatar": "",
+  "medicines": [
+    {
+      "id": 1,
+      "name": "Levothyroxine",
+      "strength": "50 mcg",
+      "form": "Tablet",
+      "unitDose": "1",
+      "stock": 58,
+      "refillThreshold": 14,
+      "manufacturer": "Sample Pharma",
+      "expiry": "03/2028",
+      "batch": "LT2411",
+      "notes": ""
+    },
+    {
+      "id": 2,
+      "name": "Metformin",
+      "strength": "500 mg",
+      "form": "Tablet",
+      "unitDose": "1",
+      "stock": 64,
+      "refillThreshold": 14,
+      "manufacturer": "Sample Pharma",
+      "expiry": "08/2027",
+      "batch": "MF8821",
+      "notes": ""
+    },
+    {
+      "id": 3,
+      "name": "Lisinopril",
+      "strength": "10 mg",
+      "form": "Tablet",
+      "unitDose": "1",
+      "stock": 41,
+      "refillThreshold": 10,
+      "manufacturer": "Demo Labs",
+      "expiry": "11/2027",
+      "batch": "LS3307",
+      "notes": ""
+    },
+    {
+      "id": 4,
+      "name": "Vitamin D3",
+      "strength": "2000 IU",
+      "form": "Capsule",
+      "unitDose": "1",
+      "stock": 90,
+      "refillThreshold": 15,
+      "manufacturer": "Demo Labs",
+      "expiry": "06/2028",
+      "batch": "VD1190",
+      "notes": ""
+    },
+    {
+      "id": 5,
+      "name": "Omega-3",
+      "strength": "1000 mg",
+      "form": "Capsule",
+      "unitDose": "2",
+      "stock": 36,
+      "refillThreshold": 12,
+      "manufacturer": "Sample Pharma",
+      "expiry": "01/2028",
+      "batch": "OM5502",
+      "notes": ""
+    },
+    {
+      "id": 6,
+      "name": "Atorvastatin",
+      "strength": "20 mg",
+      "form": "Tablet",
+      "unitDose": "1",
+      "stock": 12,
+      "refillThreshold": 14,
+      "manufacturer": "Demo Labs",
+      "expiry": "09/2027",
+      "batch": "AT7716",
+      "notes": ""
+    }
+  ],
+  "schedules": [
+    {
+      "id": 1,
+      "medicineId": 1,
+      "minuteOfDay": 420,
+      "daysMask": 127
+    },
+    {
+      "id": 2,
+      "medicineId": 2,
+      "minuteOfDay": 480,
+      "daysMask": 127
+    },
+    {
+      "id": 3,
+      "medicineId": 2,
+      "minuteOfDay": 1200,
+      "daysMask": 127
+    },
+    {
+      "id": 4,
+      "medicineId": 3,
+      "minuteOfDay": 510,
+      "daysMask": 127
+    },
+    {
+      "id": 5,
+      "medicineId": 4,
+      "minuteOfDay": 540,
+      "daysMask": 127
+    },
+    {
+      "id": 6,
+      "medicineId": 5,
+      "minuteOfDay": 780,
+      "daysMask": 31
+    },
+    {
+      "id": 7,
+      "medicineId": 6,
+      "minuteOfDay": 1260,
+      "daysMask": 127
+    }
+  ],
+  "logs": [
+    {
+      "scheduleId": 1,
+      "epochDay": 20757,
+      "status": "TAKEN",
+      "loggedAt": 1793430300000
+    },
+    {
+      "scheduleId": 1,
+      "epochDay": 20756,
+      "status": "TAKEN",
+      "loggedAt": 1793343900000
+    },
+    {
+      "scheduleId": 1,
+      "epochDay": 20755,
+      "status": "TAKEN",
+      "loggedAt": 1793257500000
+    },
+    {
+      "scheduleId": 1,
+      "epochDay": 20754,
+      "status": "TAKEN",
+      "loggedAt": 1793171100000
+    },
+    {
+      "scheduleId": 1,
+      "epochDay": 20753,
+      "status": "TAKEN",
+      "loggedAt": 1793084700000
+    },
+    {
+      "scheduleId": 1,
+      "epochDay": 20752,
+      "status": "TAKEN",
+      "loggedAt": 1792998300000
+    },
+    {
+      "scheduleId": 1,
+      "epochDay": 20751,
+      "status": "TAKEN",
+      "loggedAt": 1792911900000
+    },
+    {
+      "scheduleId": 1,
+      "epochDay": 20750,
+      "status": "TAKEN",
+      "loggedAt": 1792825500000
+    },
+    {
+      "scheduleId": 1,
+      "epochDay": 20749,
+      "status": "SKIPPED",
+      "loggedAt": 1792739100000
+    },
+    {
+      "scheduleId": 1,
+      "epochDay": 20748,
+      "status": "TAKEN",
+      "loggedAt": 1792652700000
+    },
+    {
+      "scheduleId": 1,
+      "epochDay": 20747,
+      "status": "TAKEN",
+      "loggedAt": 1792566300000
+    },
+    {
+      "scheduleId": 1,
+      "epochDay": 20746,
+      "status": "TAKEN",
+      "loggedAt": 1792479900000
+    },
+    {
+      "scheduleId": 1,
+      "epochDay": 20744,
+      "status": "TAKEN",
+      "loggedAt": 1792307100000
+    },
+    {
+      "scheduleId": 2,
+      "epochDay": 20757,
+      "status": "TAKEN",
+      "loggedAt": 1793433900000
+    },
+    {
+      "scheduleId": 2,
+      "epochDay": 20756,
+      "status": "TAKEN",
+      "loggedAt": 1793347500000
+    },
+    {
+      "scheduleId": 2,
+      "epochDay": 20755,
+      "status": "SKIPPED",
+      "loggedAt": 1793261100000
+    },
+    {
+      "scheduleId": 2,
+      "epochDay": 20753,
+      "status": "TAKEN",
+      "loggedAt": 1793088300000
+    },
+    {
+      "scheduleId": 2,
+      "epochDay": 20752,
+      "status": "TAKEN",
+      "loggedAt": 1793001900000
+    },
+    {
+      "scheduleId": 2,
+      "epochDay": 20751,
+      "status": "TAKEN",
+      "loggedAt": 1792915500000
+    },
+    {
+      "scheduleId": 2,
+      "epochDay": 20750,
+      "status": "TAKEN",
+      "loggedAt": 1792829100000
+    },
+    {
+      "scheduleId": 2,
+      "epochDay": 20749,
+      "status": "TAKEN",
+      "loggedAt": 1792742700000
+    },
+    {
+      "scheduleId": 2,
+      "epochDay": 20748,
+      "status": "TAKEN",
+      "loggedAt": 1792656300000
+    },
+    {
+      "scheduleId": 2,
+      "epochDay": 20747,
+      "status": "TAKEN",
+      "loggedAt": 1792569900000
+    },
+    {
+      "scheduleId": 2,
+      "epochDay": 20746,
+      "status": "SKIPPED",
+      "loggedAt": 1792483500000
+    },
+    {
+      "scheduleId": 2,
+      "epochDay": 20745,
+      "status": "TAKEN",
+      "loggedAt": 1792397100000
+    },
+    {
+      "scheduleId": 2,
+      "epochDay": 20744,
+      "status": "TAKEN",
+      "loggedAt": 1792310700000
+    },
+    {
+      "scheduleId": 3,
+      "epochDay": 20757,
+      "status": "TAKEN",
+      "loggedAt": 1793477100000
+    },
+    {
+      "scheduleId": 3,
+      "epochDay": 20756,
+      "status": "TAKEN",
+      "loggedAt": 1793390700000
+    },
+    {
+      "scheduleId": 3,
+      "epochDay": 20755,
+      "status": "TAKEN",
+      "loggedAt": 1793304300000
+    },
+    {
+      "scheduleId": 3,
+      "epochDay": 20754,
+      "status": "TAKEN",
+      "loggedAt": 1793217900000
+    },
+    {
+      "scheduleId": 3,
+      "epochDay": 20753,
+      "status": "TAKEN",
+      "loggedAt": 1793131500000
+    },
+    {
+      "scheduleId": 3,
+      "epochDay": 20752,
+      "status": "SKIPPED",
+      "loggedAt": 1793045100000
+    },
+    {
+      "scheduleId": 3,
+      "epochDay": 20751,
+      "status": "TAKEN",
+      "loggedAt": 1792958700000
+    },
+    {
+      "scheduleId": 3,
+      "epochDay": 20749,
+      "status": "TAKEN",
+      "loggedAt": 1792785900000
+    },
+    {
+      "scheduleId": 3,
+      "epochDay": 20748,
+      "status": "TAKEN",
+      "loggedAt": 1792699500000
+    },
+    {
+      "scheduleId": 3,
+      "epochDay": 20747,
+      "status": "TAKEN",
+      "loggedAt": 1792613100000
+    },
+    {
+      "scheduleId": 3,
+      "epochDay": 20746,
+      "status": "TAKEN",
+      "loggedAt": 1792526700000
+    },
+    {
+      "scheduleId": 3,
+      "epochDay": 20745,
+      "status": "TAKEN",
+      "loggedAt": 1792440300000
+    },
+    {
+      "scheduleId": 3,
+      "epochDay": 20744,
+      "status": "TAKEN",
+      "loggedAt": 1792353900000
+    },
+    {
+      "scheduleId": 4,
+      "epochDay": 20757,
+      "status": "TAKEN",
+      "loggedAt": 1793435700000
+    },
+    {
+      "scheduleId": 4,
+      "epochDay": 20756,
+      "status": "TAKEN",
+      "loggedAt": 1793349300000
+    },
+    {
+      "scheduleId": 4,
+      "epochDay": 20755,
+      "status": "TAKEN",
+      "loggedAt": 1793262900000
+    },
+    {
+      "scheduleId": 4,
+      "epochDay": 20754,
+      "status": "TAKEN",
+      "loggedAt": 1793176500000
+    },
+    {
+      "scheduleId": 4,
+      "epochDay": 20753,
+      "status": "TAKEN",
+      "loggedAt": 1793090100000
+    },
+    {
+      "scheduleId": 4,
+      "epochDay": 20752,
+      "status": "TAKEN",
+      "loggedAt": 1793003700000
+    },
+    {
+      "scheduleId": 4,
+      "epochDay": 20751,
+      "status": "TAKEN",
+      "loggedAt": 1792917300000
+    },
+    {
+      "scheduleId": 4,
+      "epochDay": 20750,
+      "status": "TAKEN",
+      "loggedAt": 1792830900000
+    },
+    {
+      "scheduleId": 4,
+      "epochDay": 20749,
+      "status": "SKIPPED",
+      "loggedAt": 1792744500000
+    },
+    {
+      "scheduleId": 4,
+      "epochDay": 20748,
+      "status": "TAKEN",
+      "loggedAt": 1792658100000
+    },
+    {
+      "scheduleId": 4,
+      "epochDay": 20747,
+      "status": "TAKEN",
+      "loggedAt": 1792571700000
+    },
+    {
+      "scheduleId": 4,
+      "epochDay": 20745,
+      "status": "TAKEN",
+      "loggedAt": 1792398900000
+    },
+    {
+      "scheduleId": 4,
+      "epochDay": 20744,
+      "status": "TAKEN",
+      "loggedAt": 1792312500000
+    },
+    {
+      "scheduleId": 5,
+      "epochDay": 20757,
+      "status": "TAKEN",
+      "loggedAt": 1793437500000
+    },
+    {
+      "scheduleId": 5,
+      "epochDay": 20756,
+      "status": "TAKEN",
+      "loggedAt": 1793351100000
+    },
+    {
+      "scheduleId": 5,
+      "epochDay": 20754,
+      "status": "TAKEN",
+      "loggedAt": 1793178300000
+    },
+    {
+      "scheduleId": 5,
+      "epochDay": 20753,
+      "status": "TAKEN",
+      "loggedAt": 1793091900000
+    },
+    {
+      "scheduleId": 5,
+      "epochDay": 20752,
+      "status": "TAKEN",
+      "loggedAt": 1793005500000
+    },
+    {
+      "scheduleId": 5,
+      "epochDay": 20751,
+      "status": "TAKEN",
+      "loggedAt": 1792919100000
+    },
+    {
+      "scheduleId": 5,
+      "epochDay": 20750,
+      "status": "TAKEN",
+      "loggedAt": 1792832700000
+    },
+    {
+      "scheduleId": 5,
+      "epochDay": 20749,
+      "status": "TAKEN",
+      "loggedAt": 1792746300000
+    },
+    {
+      "scheduleId": 5,
+      "epochDay": 20748,
+      "status": "TAKEN",
+      "loggedAt": 1792659900000
+    },
+    {
+      "scheduleId": 5,
+      "epochDay": 20747,
+      "status": "TAKEN",
+      "loggedAt": 1792573500000
+    },
+    {
+      "scheduleId": 5,
+      "epochDay": 20746,
+      "status": "SKIPPED",
+      "loggedAt": 1792487100000
+    },
+    {
+      "scheduleId": 5,
+      "epochDay": 20745,
+      "status": "TAKEN",
+      "loggedAt": 1792400700000
+    },
+    {
+      "scheduleId": 5,
+      "epochDay": 20744,
+      "status": "TAKEN",
+      "loggedAt": 1792314300000
+    },
+    {
+      "scheduleId": 6,
+      "epochDay": 20756,
+      "status": "TAKEN",
+      "loggedAt": 1793365500000
+    },
+    {
+      "scheduleId": 6,
+      "epochDay": 20755,
+      "status": "TAKEN",
+      "loggedAt": 1793279100000
+    },
+    {
+      "scheduleId": 6,
+      "epochDay": 20754,
+      "status": "TAKEN",
+      "loggedAt": 1793192700000
+    },
+    {
+      "scheduleId": 6,
+      "epochDay": 20753,
+      "status": "TAKEN",
+      "loggedAt": 1793106300000
+    },
+    {
+      "scheduleId": 6,
+      "epochDay": 20752,
+      "status": "SKIPPED",
+      "loggedAt": 1793019900000
+    },
+    {
+      "scheduleId": 6,
+      "epochDay": 20749,
+      "status": "TAKEN",
+      "loggedAt": 1792760700000
+    },
+    {
+      "scheduleId": 6,
+      "epochDay": 20748,
+      "status": "TAKEN",
+      "loggedAt": 1792674300000
+    },
+    {
+      "scheduleId": 6,
+      "epochDay": 20747,
+      "status": "TAKEN",
+      "loggedAt": 1792587900000
+    },
+    {
+      "scheduleId": 6,
+      "epochDay": 20746,
+      "status": "TAKEN",
+      "loggedAt": 1792501500000
+    },
+    {
+      "scheduleId": 6,
+      "epochDay": 20745,
+      "status": "TAKEN",
+      "loggedAt": 1792415100000
+    },
+    {
+      "scheduleId": 7,
+      "epochDay": 20757,
+      "status": "TAKEN",
+      "loggedAt": 1793480700000
+    },
+    {
+      "scheduleId": 7,
+      "epochDay": 20756,
+      "status": "TAKEN",
+      "loggedAt": 1793394300000
+    },
+    {
+      "scheduleId": 7,
+      "epochDay": 20755,
+      "status": "TAKEN",
+      "loggedAt": 1793307900000
+    },
+    {
+      "scheduleId": 7,
+      "epochDay": 20754,
+      "status": "TAKEN",
+      "loggedAt": 1793221500000
+    },
+    {
+      "scheduleId": 7,
+      "epochDay": 20753,
+      "status": "TAKEN",
+      "loggedAt": 1793135100000
+    },
+    {
+      "scheduleId": 7,
+      "epochDay": 20752,
+      "status": "TAKEN",
+      "loggedAt": 1793048700000
+    },
+    {
+      "scheduleId": 7,
+      "epochDay": 20751,
+      "status": "TAKEN",
+      "loggedAt": 1792962300000
+    },
+    {
+      "scheduleId": 7,
+      "epochDay": 20750,
+      "status": "TAKEN",
+      "loggedAt": 1792875900000
+    },
+    {
+      "scheduleId": 7,
+      "epochDay": 20749,
+      "status": "SKIPPED",
+      "loggedAt": 1792789500000
+    },
+    {
+      "scheduleId": 7,
+      "epochDay": 20748,
+      "status": "TAKEN",
+      "loggedAt": 1792703100000
+    },
+    {
+      "scheduleId": 7,
+      "epochDay": 20746,
+      "status": "TAKEN",
+      "loggedAt": 1792530300000
+    },
+    {
+      "scheduleId": 7,
+      "epochDay": 20745,
+      "status": "TAKEN",
+      "loggedAt": 1792443900000
+    },
+    {
+      "scheduleId": 7,
+      "epochDay": 20744,
+      "status": "TAKEN",
+      "loggedAt": 1792357500000
+    }
+  ]
+}
