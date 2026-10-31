@@ -71,7 +71,7 @@ fun ProfileScreen(app: AppEnv) {
     var confirmImport by remember { mutableStateOf(false) }
     val hasPhoto = app.profile.avatarVersion >= 0 && app.profile.avatar() != null
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = LocalListBottom.current - 56.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Profile", style = MaterialTheme.typography.displaySmall)
 
         Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(32.dp), color = c.surfaceContainerLow) {
@@ -93,6 +93,7 @@ fun ProfileScreen(app: AppEnv) {
         }
 
         SectionCard("Appearance", Icons.Rounded.Palette, collapsible = true) { AppearanceSection(app) }
+        SectionCard("Glass bar", Icons.Rounded.BlurOn, collapsible = true) { GlassEditor(app) }
 
         SectionCard("Reminders", Icons.Rounded.Notifications, collapsible = true) {
             Choice(listOf("Alarm" to true, "Notification" to false), app.theme.reminderAlarm, { app.theme.updateReminderAlarm(it) })

@@ -24,6 +24,15 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.kyant.backdrop.shadow.Shadow
+import com.kyant.backdrop.shadow.InnerShadow
+import com.kyant.backdrop.highlight.Highlight
+import com.kyant.backdrop.effects.colorControls
+import com.kyant.backdrop.effects.vibrancy
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -65,23 +74,46 @@ fun Root(app: AppEnv) {
     MainScaffold(app)
 }
 
-/** Pill-shaped bar that floats above the content. The selected item expands to show its label. */
+/** How much room lists leave at the bottom: more when the floating bar and button overlay the content. */
+internal val LocalListBottom = androidx.compose.runtime.compositionLocalOf { 96.dp }
+
+/**
+ * Liquid Glass pill that floats over the content (no bar behind it, so the page scrolls underneath).
+ * The selected item expands to show its label. [backdrop] holds the page content it refracts.
+ */
 @Composable
-private fun FloatingNav(items: List<Pair<String, ImageVector>>, selected: Int, onSelect: (Int) -> Unit) {
+private fun FloatingNav(items: List<Pair<String, ImageVector>>, selected: Int, backdrop: com.kyant.backdrop.backdrops.LayerBackdrop, g: GlassStyle, onSelect: (Int) -> Unit) {
     val c = MaterialTheme.colorScheme
+    val tint = c.surfaceContainerHigh.copy(alpha = g.tint)
+    val edge = when (g.edgeStyle) { 1 -> Highlight.Ambient; 2 -> Highlight.Plain; else -> Highlight.Default }
     Box(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 24.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
-        Surface(shape = CircleShape, color = c.surfaceContainerHigh, tonalElevation = 6.dp, shadowElevation = 10.dp) {
-            Row(Modifier.padding(6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                items.forEachIndexed { i, (label, icon) ->
-                    val sel = i == selected
-                    Row(
-                        Modifier.clip(CircleShape).background(if (sel) c.primaryContainer else Color.Transparent)
-                            .clickable { onSelect(i) }.padding(horizontal = if (sel) 20.dp else 16.dp, vertical = 12.dp).animateContentSize(),
-                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Icon(icon, label, tint = if (sel) c.onPrimaryContainer else c.onSurfaceVariant)
-                        if (sel) Text(label, style = MaterialTheme.typography.labelLarge, color = c.onPrimaryContainer)
-                    }
+        Row(
+            Modifier
+                .drawBackdrop(
+                    backdrop = backdrop,
+                    shape = { CircleShape },
+                    effects = {
+                        if (g.saturation != 1f) colorControls(saturation = g.saturation)
+                        blur(g.blur.dp.toPx())
+                        lens(g.lensHeight.dp.toPx(), g.lensAmount.dp.toPx(), g.depth, g.chromatic)
+                    },
+                    highlight = if (g.edgeWidth > 0f) ({ edge.copy(width = g.edgeWidth.dp, blurRadius = (g.edgeWidth / 2f).dp, alpha = g.edgeAlpha) }) else null,
+                    shadow = if (g.shadowRadius > 0f && g.shadowAlpha > 0f) ({ Shadow(radius = g.shadowRadius.dp, color = Color.Black.copy(alpha = g.shadowAlpha)) }) else null,
+                    innerShadow = if (g.innerAlpha > 0f) ({ InnerShadow(radius = g.innerRadius.dp, color = Color.White.copy(alpha = g.innerAlpha)) }) else null,
+                    onDrawSurface = { drawRect(tint) },
+                )
+                .padding(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically,
+        ) {
+            items.forEachIndexed { i, (label, icon) ->
+                val sel = i == selected
+                Row(
+                    Modifier.clip(CircleShape).background(if (sel) c.primaryContainer.copy(alpha = 0.9f) else Color.Transparent)
+                        .clickable { onSelect(i) }.padding(horizontal = if (sel) 20.dp else 16.dp, vertical = 12.dp).animateContentSize(),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(icon, label, tint = if (sel) c.onPrimaryContainer else c.onSurface)
+                    if (sel) Text(label, style = MaterialTheme.typography.labelLarge, color = c.onPrimaryContainer)
                 }
             }
         }
@@ -105,29 +137,40 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
             backProgress = 0f
         }
     }
-    Scaffold(
-        bottomBar = {
-            val navItems = listOf("Today" to Icons.Rounded.Today, "Medicines" to ImageVector.vectorResource(R.drawable.ic_pill), "History" to Icons.Rounded.Insights, "Profile" to Icons.Rounded.Person)
-            if (app.theme.floatingNav) FloatingNav(navItems, tab) { tab = it }
-            else NavigationBar(containerColor = MaterialTheme.colorScheme.background, tonalElevation = 0.dp) {
-                navItems.forEachIndexed { i, (l, ic) -> NavigationBarItem(tab == i, { tab = i }, { Icon(ic, null) }, label = { Text(l) }) }
-            }
-        },
-        floatingActionButton = {
-            if (tab <= 1) FloatingActionButton({ adding = true }) { Icon(Icons.Rounded.Add, "Add medicine") }
-        },
-    ) { pad ->
-        Column(Modifier.padding(pad).fillMaxSize()) {
-            header()
-            Box(Modifier.weight(1f).graphicsLayer {
-                val scale = 1f - 0.08f * backProgress
-                scaleX = scale; scaleY = scale; alpha = 1f - 0.3f * backProgress
-            }) {
-                when (tab) {
-                    0 -> Today(app)
-                    1 -> Medicines(app) { editing = it }
-                    2 -> History(app)
-                    else -> ProfileScreen(app)
+    val floating = app.theme.floatingNav
+    val backdrop = com.kyant.backdrop.backdrops.rememberLayerBackdrop()
+    val navItems = listOf("Today" to Icons.Rounded.Today, "Medicines" to ImageVector.vectorResource(R.drawable.ic_pill), "History" to Icons.Rounded.Insights, "Profile" to Icons.Rounded.Person)
+    androidx.compose.runtime.CompositionLocalProvider(LocalListBottom provides if (floating) 200.dp else 96.dp) {
+        Scaffold(
+            // Standard mode uses a normal bottom bar and button. Floating mode draws both over the page instead.
+            bottomBar = {
+                if (!floating) NavigationBar(containerColor = MaterialTheme.colorScheme.background, tonalElevation = 0.dp) {
+                    navItems.forEachIndexed { i, (l, ic) -> NavigationBarItem(tab == i, { tab = i }, { Icon(ic, null) }, label = { Text(l) }) }
+                }
+            },
+            floatingActionButton = {
+                if (!floating && tab <= 1) FloatingActionButton({ adding = true }) { Icon(Icons.Rounded.Add, "Add medicine") }
+            },
+            contentWindowInsets = if (floating) WindowInsets.statusBars else ScaffoldDefaults.contentWindowInsets,
+        ) { pad ->
+            Box(Modifier.padding(pad).fillMaxSize()) {
+                Column(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
+                    header()
+                    Box(Modifier.weight(1f).graphicsLayer {
+                        val scale = 1f - 0.08f * backProgress
+                        scaleX = scale; scaleY = scale; alpha = 1f - 0.3f * backProgress
+                    }) {
+                        when (tab) {
+                            0 -> Today(app)
+                            1 -> Medicines(app) { editing = it }
+                            2 -> History(app)
+                            else -> ProfileScreen(app)
+                        }
+                    }
+                }
+                if (floating) Column(Modifier.align(Alignment.BottomCenter), horizontalAlignment = Alignment.End) {
+                    if (tab <= 1) FloatingActionButton({ adding = true }, Modifier.padding(end = 24.dp)) { Icon(Icons.Rounded.Add, "Add medicine") }
+                    FloatingNav(navItems, tab, backdrop, app.theme.glass) { tab = it }
                 }
             }
         }
@@ -191,7 +234,7 @@ internal fun Today(app: AppEnv) {
     val name = app.profile.value.name.substringBefore(' ').ifBlank { "there" }
     val c = MaterialTheme.colorScheme
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = LocalListBottom.current), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item {
             Row(Modifier.padding(top = 28.dp, start = 4.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -283,7 +326,7 @@ internal fun Medicines(app: AppEnv, onEdit: (Medicine) -> Unit) {
     val meds by dao.medicines().collectAsState(emptyList())
     val scope = rememberCoroutineScope()
     var deleting by remember { mutableStateOf<Medicine?>(null) }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = LocalListBottom.current), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Text("Medicines", style = MaterialTheme.typography.displaySmall) }
         if (meds.isEmpty()) item { Text("No medicines yet.") }
         items(meds, key = { it.id }) { m ->
@@ -454,7 +497,7 @@ internal fun History(app: AppEnv) {
 
     val card = MaterialTheme.colorScheme.surfaceContainerLow
     val cardShape = RoundedCornerShape(28.dp)
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = LocalListBottom.current), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item { Text("History", style = MaterialTheme.typography.displaySmall) }
         item {
             Surface(Modifier.fillMaxWidth(), shape = cardShape, color = card) {

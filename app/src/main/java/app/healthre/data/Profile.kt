@@ -98,6 +98,25 @@ class ProfileStore(ctx: Context, prefsName: String = "profile", avatarName: Stri
     }
 }
 
+/** Look of the floating Liquid Glass navigation bar. Distances are in dp. */
+data class GlassStyle(
+    val blur: Float = 10f,
+    val lensHeight: Float = 16f,
+    val lensAmount: Float = 24f,
+    val depth: Boolean = false,
+    val chromatic: Boolean = false,
+    val saturation: Float = 1.5f,
+    val tint: Float = 0.55f,
+    val edgeWidth: Float = 1f,
+    val edgeAlpha: Float = 1f,
+    /** 0 = directional, 1 = ambient, 2 = plain. */
+    val edgeStyle: Int = 0,
+    val shadowRadius: Float = 16f,
+    val shadowAlpha: Float = 0.12f,
+    val innerRadius: Float = 16f,
+    val innerAlpha: Float = 0f,
+)
+
 /** Theme choice. One instance is shared by the real app and the demo, because it is a device preference. */
 class ThemeSettings(ctx: Context) {
     private val sp = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE)
@@ -117,6 +136,29 @@ class ThemeSettings(ctx: Context) {
     /** False = standard bottom bar, true = floating pill. */
     var floatingNav by mutableStateOf(sp.getBoolean("floating_nav", false))
         private set
+
+    var glass by mutableStateOf(readGlass())
+        private set
+
+    private fun readGlass(): GlassStyle {
+        val d = GlassStyle()
+        return GlassStyle(
+            sp.getFloat("g_blur", d.blur), sp.getFloat("g_lens_h", d.lensHeight), sp.getFloat("g_lens_a", d.lensAmount),
+            sp.getBoolean("g_depth", d.depth), sp.getBoolean("g_chroma", d.chromatic), sp.getFloat("g_sat", d.saturation),
+            sp.getFloat("g_tint", d.tint), sp.getFloat("g_edge_w", d.edgeWidth), sp.getFloat("g_edge_a", d.edgeAlpha),
+            sp.getInt("g_edge_style", d.edgeStyle), sp.getFloat("g_sh_r", d.shadowRadius), sp.getFloat("g_sh_a", d.shadowAlpha),
+            sp.getFloat("g_in_r", d.innerRadius), sp.getFloat("g_in_a", d.innerAlpha),
+        )
+    }
+
+    fun updateGlass(g: GlassStyle) {
+        sp.edit().putFloat("g_blur", g.blur).putFloat("g_lens_h", g.lensHeight).putFloat("g_lens_a", g.lensAmount)
+            .putBoolean("g_depth", g.depth).putBoolean("g_chroma", g.chromatic).putFloat("g_sat", g.saturation)
+            .putFloat("g_tint", g.tint).putFloat("g_edge_w", g.edgeWidth).putFloat("g_edge_a", g.edgeAlpha)
+            .putInt("g_edge_style", g.edgeStyle).putFloat("g_sh_r", g.shadowRadius).putFloat("g_sh_a", g.shadowAlpha)
+            .putFloat("g_in_r", g.innerRadius).putFloat("g_in_a", g.innerAlpha).apply()
+        glass = g
+    }
 
     fun updateFloatingNav(b: Boolean) { sp.edit().putBoolean("floating_nav", b).apply(); floatingNav = b }
     fun updateTheme(m: Int) { sp.edit().putInt("theme", m).apply(); themeMode = m }

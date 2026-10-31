@@ -32,6 +32,10 @@ android {
     }
 
     buildTypes {
+        // Same key as release (when key.properties exists) so a debug build installs over a release one and keeps its data.
+        debug {
+            if (keyProps.exists()) signingConfig = signingConfigs.getByName("release")
+        }
         release {
             signingConfig = if (keyProps.exists()) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
             isMinifyEnabled = true
@@ -60,6 +64,7 @@ dependencies {
     implementation(libs.lifecycle.runtime)
     implementation(libs.navigation.compose)
     implementation(libs.core.ktx)
+    implementation(libs.kyant.backdrop)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
