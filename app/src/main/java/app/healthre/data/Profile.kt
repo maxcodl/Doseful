@@ -108,6 +108,11 @@ class ThemeSettings(ctx: Context) {
     var amoled by mutableStateOf(sp.getBoolean("amoled", false))
         private set
 
+    /** False = standard bottom bar, true = floating pill. */
+    var floatingNav by mutableStateOf(sp.getBoolean("floating_nav", false))
+        private set
+
+    fun updateFloatingNav(b: Boolean) { sp.edit().putBoolean("floating_nav", b).apply(); floatingNav = b }
     fun updateTheme(m: Int) { sp.edit().putInt("theme", m).apply(); themeMode = m }
     fun updateAmoled(b: Boolean) { sp.edit().putBoolean("amoled", b).apply(); amoled = b }
 }

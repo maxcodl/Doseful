@@ -9,6 +9,8 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,6 +24,9 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -58,6 +63,29 @@ fun Root(app: AppEnv) {
     MainScaffold(app)
 }
 
+/** Pill-shaped bar that floats above the content. The selected item expands to show its label. */
+@Composable
+private fun FloatingNav(items: List<Pair<String, ImageVector>>, selected: Int, onSelect: (Int) -> Unit) {
+    val c = MaterialTheme.colorScheme
+    Box(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 24.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
+        Surface(shape = CircleShape, color = c.surfaceContainerHigh, tonalElevation = 6.dp, shadowElevation = 10.dp) {
+            Row(Modifier.padding(6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                items.forEachIndexed { i, (label, icon) ->
+                    val sel = i == selected
+                    Row(
+                        Modifier.clip(CircleShape).background(if (sel) c.primaryContainer else Color.Transparent)
+                            .clickable { onSelect(i) }.padding(horizontal = if (sel) 20.dp else 16.dp, vertical = 12.dp).animateContentSize(),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(icon, label, tint = if (sel) c.onPrimaryContainer else c.onSurfaceVariant)
+                        if (sel) Text(label, style = MaterialTheme.typography.labelLarge, color = c.onPrimaryContainer)
+                    }
+                }
+            }
+        }
+    }
+}
+
 /** The whole signed-in app. The demo reuses it unchanged, with [header] shown above the tabs. */
 @Composable
 fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
@@ -66,9 +94,10 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
     var adding by remember { mutableStateOf(false) }
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                listOf("Today" to Icons.Rounded.Today, "Medicines" to ImageVector.vectorResource(R.drawable.ic_pill), "History" to Icons.Rounded.Insights, "Profile" to Icons.Rounded.Person)
-                    .forEachIndexed { i, (l, ic) -> NavigationBarItem(tab == i, { tab = i }, { Icon(ic, null) }, label = { Text(l) }) }
+            val navItems = listOf("Today" to Icons.Rounded.Today, "Medicines" to ImageVector.vectorResource(R.drawable.ic_pill), "History" to Icons.Rounded.Insights, "Profile" to Icons.Rounded.Person)
+            if (app.theme.floatingNav) FloatingNav(navItems, tab) { tab = it }
+            else NavigationBar {
+                navItems.forEachIndexed { i, (l, ic) -> NavigationBarItem(tab == i, { tab = i }, { Icon(ic, null) }, label = { Text(l) }) }
             }
         },
         floatingActionButton = {
@@ -91,6 +120,39 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
     editing?.let { MedicineDialog(app, it) { editing = null } }
 }
 
+private val morning = listOf("Good morning,", "Rise and shine,", "Morning,", "Fresh start,", "Hope you slept well,")
+private val afternoon = listOf("Good afternoon,", "Hope your day is going well,", "Afternoon,", "Hey there,")
+private val evening = listOf("Good evening,", "Winding down,", "Evening,", "Hope it was a good day,")
+private val night = listOf("Good night,", "Still up,", "Take it easy,", "Rest well,")
+private val anytime = listOf("Welcome back,", "Hello,", "Hey,", "Nice to see you,", "Stay on track,")
+
+/** A random greeting that fits the time of day, picked once and kept across rotations. */
+@Composable
+private fun rememberGreeting(): String = rememberSaveable {
+    val h = LocalTime.now().hour
+    val byTime = when (h) { in 5..11 -> morning; in 12..16 -> afternoon; in 17..20 -> evening; else -> night }
+    (byTime + anytime).random()
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun StatTile(
+    title: String, value: String, icon: ImageVector, shape: androidx.compose.ui.graphics.Shape,
+    container: Color, onContainer: Color, modifier: Modifier = Modifier, note: String? = null,
+) {
+    Surface(modifier, shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Box(Modifier.size(48.dp).clip(shape).background(container), contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = onContainer)
+            }
+            Spacer(Modifier.height(14.dp))
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(value, style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black), color = MaterialTheme.colorScheme.primary)
+            if (note != null) Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun Today(app: AppEnv) {
@@ -102,26 +164,82 @@ internal fun Today(app: AppEnv) {
     val data by remember { combine(dao.schedules(), dao.logs(today)) { s, l -> s.filter { it.schedule.daysMask and bit(day) != 0 } to l.associateBy { it.scheduleId } } }
         .collectAsState(emptyList<ScheduleWithMedicine>() to emptyMap())
     val (list, logs) = data
+    val meds by dao.medicines().collectAsState(emptyList())
     val scope = rememberCoroutineScope()
+    val greeting = rememberGreeting()
     val done = list.count { logs[it.schedule.id]?.status == DoseStatus.TAKEN }
-    val name = app.profile.value.name.substringBefore(' ')
+    val skipped = list.count { logs[it.schedule.id]?.status == DoseStatus.SKIPPED }
+    val lowStock = meds.count { it.refillThreshold > 0 && it.stock <= it.refillThreshold }
+    val pending = list.filter { logs[it.schedule.id] == null }
+    val next = pending.firstOrNull { it.schedule.minuteOfDay >= nowMin } ?: pending.firstOrNull()
+    val name = app.profile.value.name.substringBefore(' ').ifBlank { "there" }
+    val c = MaterialTheme.colorScheme
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(if (name.isBlank()) "Today" else "Hi, $name", Modifier.weight(1f), style = MaterialTheme.typography.displaySmall)
-                Avatar(app, 52.dp)
+            Row(Modifier.padding(top = 28.dp, start = 4.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(greeting, style = MaterialTheme.typography.titleLarge, color = c.onSurfaceVariant)
+                    Text(name, style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Black), maxLines = 1)
+                }
+                Avatar(app, 60.dp)
             }
-            Spacer(Modifier.height(8.dp))
-            LinearWavyProgressIndicator(progress = { if (list.isEmpty()) 0f else done / list.size.toFloat() }, modifier = Modifier.fillMaxWidth())
-            Text("$done of ${list.size} doses taken", Modifier.padding(top = 4.dp), style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.height(12.dp))
         }
-        if (list.isEmpty()) item { Text("Nothing scheduled today. Add a medicine with +.") }
+        item {
+            Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(32.dp), color = c.primaryContainer) {
+                Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Doses today", style = MaterialTheme.typography.titleLarge, color = c.onPrimaryContainer)
+                    Text(
+                        if (list.isEmpty()) "None" else "$done of ${list.size}",
+                        style = MaterialTheme.typography.displayLarge.copy(fontWeight = FontWeight.Black), color = c.onPrimaryContainer,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    LinearWavyProgressIndicator(
+                        progress = { if (list.isEmpty()) 0f else done / list.size.toFloat() }, modifier = Modifier.fillMaxWidth(),
+                        color = c.primary, trackColor = c.onPrimaryContainer.copy(alpha = 0.18f),
+                    )
+                    Text(
+                        when {
+                            list.isEmpty() -> "Nothing scheduled. Add a medicine with +."
+                            pending.isEmpty() -> "All done for today"
+                            else -> "${pending.size} still to go"
+                        },
+                        style = MaterialTheme.typography.bodyLarge, color = c.onPrimaryContainer,
+                    )
+                }
+            }
+        }
+        item { Text("Overview", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = 4.dp, top = 8.dp)) }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    StatTile("Next dose", next?.let { fmt(it.schedule.minuteOfDay) } ?: "--", Icons.Rounded.Alarm, MaterialShapes.Cookie6Sided.toShape(), c.primaryContainer, c.onPrimaryContainer, Modifier.weight(1f).fillMaxHeight(), next?.medicine?.name ?: "Nothing pending")
+                    StatTile("Medicines", "${meds.size}", ImageVector.vectorResource(R.drawable.ic_pill), MaterialShapes.Clover4Leaf.toShape(), c.secondaryContainer, c.onSecondaryContainer, Modifier.weight(1f).fillMaxHeight(), "in your list")
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    StatTile("Refills due", "$lowStock", Icons.Rounded.Inventory2, MaterialShapes.Flower.toShape(), c.errorContainer, c.onErrorContainer, Modifier.weight(1f).fillMaxHeight(), if (lowStock == 0) "all stocked" else "running low")
+                    StatTile("Skipped", "$skipped", Icons.Rounded.Close, MaterialShapes.Pentagon.toShape(), c.tertiaryContainer, c.onTertiaryContainer, Modifier.weight(1f).fillMaxHeight(), "today")
+                }
+            }
+        }
+        if (list.isNotEmpty()) item { Text("Today's schedule", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = 4.dp, top = 8.dp)) }
         items(list, key = { it.schedule.id }) { sm ->
             val log = logs[sm.schedule.id]
             val overdue = log == null && sm.schedule.minuteOfDay < nowMin
+            val shapes = listOf(MaterialShapes.Cookie6Sided, MaterialShapes.Clover4Leaf, MaterialShapes.Flower, MaterialShapes.Pentagon, MaterialShapes.Cookie9Sided)
+            val (statusIcon, bg, fg) = when {
+                log?.status == DoseStatus.TAKEN -> Triple(Icons.Rounded.Check, c.primaryContainer, c.onPrimaryContainer)
+                log?.status == DoseStatus.SKIPPED -> Triple(Icons.Rounded.Close, c.tertiaryContainer, c.onTertiaryContainer)
+                overdue -> Triple(Icons.Rounded.Alarm, c.errorContainer, c.onErrorContainer)
+                else -> Triple(ImageVector.vectorResource(R.drawable.ic_pill), c.secondaryContainer, c.onSecondaryContainer)
+            }
             ElevatedCard(Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(52.dp).clip(shapes[(sm.schedule.id % shapes.size).toInt()].toShape()).background(bg), contentAlignment = Alignment.Center) {
+                        Icon(statusIcon, null, tint = fg)
+                    }
+                    Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
                         Text(sm.medicine.name, style = MaterialTheme.typography.titleLarge)
                         Text("${fmt(sm.schedule.minuteOfDay)} · ${sm.medicine.unitDose} ${sm.medicine.strength}".trim())
@@ -141,6 +259,7 @@ internal fun Today(app: AppEnv) {
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun Medicines(app: AppEnv, onEdit: (Medicine) -> Unit) {
     val ctx = LocalContext.current
@@ -158,6 +277,17 @@ internal fun Medicines(app: AppEnv, onEdit: (Medicine) -> Unit) {
                 colors = if (low) CardDefaults.cardColors(MaterialTheme.colorScheme.errorContainer) else CardDefaults.cardColors(),
             ) {
                 Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier.size(52.dp).clip(MaterialShapes.Cookie9Sided.toShape())
+                            .background(if (low) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondaryContainer),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            ImageVector.vectorResource(R.drawable.ic_pill), null,
+                            tint = if (low) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                    }
+                    Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
                         Text(m.name, style = MaterialTheme.typography.titleLarge)
                         Text("${m.strength} ${m.form}".trim())

@@ -177,11 +177,12 @@ private fun Permissions() {
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { tick++ }
     val notifOk = remember(tick) { Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED }
     val exactOk = remember(tick) { Alarms.canExact(ctx) }
+    val bgOk = remember(tick) { Alarms.backgroundAllowed(ctx) }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { tick++ }
 
     Text("Almost there", style = MaterialTheme.typography.displaySmall)
     Spacer(Modifier.height(8.dp))
-    Text("Two permissions make reminders reliable.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text("Three permissions make reminders reliable.", color = MaterialTheme.colorScheme.onSurfaceVariant)
     Spacer(Modifier.height(24.dp))
     PermissionCard(Icons.Rounded.Notifications, "Notifications", "Show dose and refill reminders.", notifOk) {
         if (Build.VERSION.SDK_INT >= 33) ask.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -189,6 +190,10 @@ private fun Permissions() {
     Spacer(Modifier.height(12.dp))
     PermissionCard(Icons.Rounded.Alarm, "Exact alarms", "Fire reminders at the exact minute, even in battery saver.", exactOk) {
         ctx.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${ctx.packageName}")))
+    }
+    Spacer(Modifier.height(12.dp))
+    PermissionCard(Icons.Rounded.BatterySaver, "Run in background", "Stops battery savers from delaying or killing your reminders.", bgOk) {
+        Alarms.requestBackground(ctx)
     }
 }
 

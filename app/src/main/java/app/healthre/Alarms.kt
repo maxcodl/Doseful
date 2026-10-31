@@ -44,6 +44,20 @@ object Alarms {
         ctx, sid.toInt(), Intent(ctx, AlarmReceiver::class.java).putExtra(EXTRA_SID, sid), flags or PendingIntent.FLAG_IMMUTABLE,
     )
 
+    /** True when the user let Doseful run in the background, so battery savers do not delay reminders. */
+    fun backgroundAllowed(ctx: Context) =
+        ctx.getSystemService(android.os.PowerManager::class.java).isIgnoringBatteryOptimizations(ctx.packageName)
+
+    /** Opens the system prompt that asks to exempt Doseful from battery optimisation. */
+    fun requestBackground(ctx: Context) {
+        val pkg = android.net.Uri.parse("package:${ctx.packageName}")
+        try {
+            ctx.startActivity(Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, pkg))
+        } catch (e: Exception) {
+            ctx.startActivity(Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+        }
+    }
+
     fun canExact(ctx: Context) =
         Build.VERSION.SDK_INT < 31 || ctx.getSystemService(AlarmManager::class.java).canScheduleExactAlarms()
 
@@ -75,9 +89,9 @@ object Alarms {
         val sid = sm.schedule.id
         val open = PendingIntent.getActivity(ctx, 0, Intent(ctx, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         val n = NotificationCompat.Builder(ctx, CH_DOSE)
-            .setSmallIcon(android.R.drawable.ic_popup_reminder)
+            .setSmallIcon(R.drawable.ic_pill)
             .setContentTitle(sm.medicine.name)
-            .setContentText("Time to take ${sm.medicine.unitDose} ${sm.medicine.strength}".trim())
+            .setContentText("Time to take ${sm.medicine.unitDose} ${sm.medicine.form.ifBlank { "dose" }.lowercase()}" + sm.medicine.strength.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty())
             .setPriority(NotificationCompat.PRIORITY_HIGH).setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setContentIntent(open).setAutoCancel(true)
             .addAction(0, "Taken", actionPi(ctx, sid, day, "take", sid.toInt() * 2))
@@ -88,7 +102,7 @@ object Alarms {
 
     fun notifyRefill(ctx: Context, m: Medicine) {
         val n = NotificationCompat.Builder(ctx, CH_REFILL)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_pill)
             .setContentTitle("Refill ${m.name}")
             .setContentText("${m.stock} left (refill at ${m.refillThreshold})")
             .setAutoCancel(true).build()

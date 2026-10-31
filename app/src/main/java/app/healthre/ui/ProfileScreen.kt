@@ -79,6 +79,10 @@ fun ProfileScreen(app: AppEnv) {
         }
 
         SectionCard("Reminders") {
+            if (!Alarms.backgroundAllowed(ctx)) {
+                Text("Battery saver may delay reminders. Allow Doseful to run in the background.", color = MaterialTheme.colorScheme.error)
+                OutlinedButton({ Alarms.requestBackground(ctx) }, shapes = ButtonDefaults.shapes()) { Text("Allow background activity") }
+            }
             if (!Alarms.canExact(ctx)) {
                 Text("Exact alarms are off, so reminders may be late.", color = MaterialTheme.colorScheme.error)
                 OutlinedButton({ ctx.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${ctx.packageName}"))) }, shapes = ButtonDefaults.shapes()) { Text("Allow exact alarms") }

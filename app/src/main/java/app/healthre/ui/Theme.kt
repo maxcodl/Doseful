@@ -18,10 +18,10 @@ import androidx.compose.ui.text.font.FontWeight
 import app.healthre.AppEnv
 import app.healthre.R
 
-// Outfit (OFL, bundled): same typeface family Paisa uses.
-private val Outfit = FontFamily(
-    listOf(400, 500, 600, 700).map {
-        Font(R.font.outfit, FontWeight(it), variationSettings = FontVariation.Settings(FontVariation.weight(it)))
+// Nunito (OFL, bundled): a free rounded typeface. Heavy weights are used for big numbers.
+private val Nunito = FontFamily(
+    listOf(400, 500, 600, 700, 800, 900).map {
+        Font(R.font.nunito, FontWeight(it), variationSettings = FontVariation.Settings(FontVariation.weight(it)))
     },
 )
 
@@ -68,7 +68,7 @@ fun HealthReTheme(app: AppEnv, content: @Composable () -> Unit) {
     MaterialExpressiveTheme(
         colorScheme = scheme,
         motionScheme = MotionScheme.expressive(),
-        typography = Typography().withFont(Outfit),
+        typography = Typography().withFont(Nunito),
         content = content,
     )
 }

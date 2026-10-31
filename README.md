@@ -30,12 +30,12 @@
 
 ## Features
 
-- **Reminders that arrive.** Exact alarms with **Taken** and **Skip** buttons right in the notification. Alarms are restored after a reboot, an app update or a timezone change.
+- **Reminders that arrive.** Exact alarms with **Taken** and **Skip** buttons right in the notification. Alarms are restored after a reboot, an app update or a timezone change, and onboarding asks for the permissions that keep them reliable (notifications, exact alarms, background activity).
 - **Flexible schedules.** Several times per day, any days of the week, per medicine.
 - **Stock and refills.** Taking a dose lowers your stock. Get a refill alert before a pack runs out, and see expiry dates at a glance.
 - **Adherence at a glance.** A 14-day adherence ring, a streak counter and a day-by-day list.
 - **Material 3 Expressive.** Morphing shapes, expressive motion, connected toggle buttons, wavy progress indicators and Material You dynamic colour.
-- **AMOLED black.** Light, dark or system theme, with an optional true-black mode.
+- **AMOLED black and floating navbar.** Light, dark or system theme, an optional true-black mode, and a switch between a standard and a floating navigation bar.
 - **Profile with photo.** Pick a picture from the system photo picker. It never leaves the device.
 - **Backup and restore.** Export everything to a single JSON file and restore it later.
 - **Try before you commit.** A demo mode in onboarding runs the full app on fake data. Your own data is never touched.
@@ -96,7 +96,7 @@ Kotlin, Jetpack Compose, Material 3 Expressive, Room and AlarmManager.
 
 ## Credits
 
-- [Outfit](https://github.com/Outfitio/Outfit-Fonts) typeface, SIL Open Font License 1.1 (see [`licenses/`](licenses/)).
+- [Nunito](https://github.com/googlefonts/nunito) typeface, SIL Open Font License 1.1 (see [`licenses/`](licenses/)).
 - [Material Symbols](https://fonts.google.com/icons) by Google, Apache License 2.0.
 
 ## License
