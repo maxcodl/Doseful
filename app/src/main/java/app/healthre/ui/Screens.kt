@@ -105,7 +105,7 @@ internal val LocalListBottom = androidx.compose.runtime.compositionLocalOf { 96.
 @Composable
 private fun NavItem(
     label: String, icon: ImageVector, selected: Boolean, type: Int, selection: Int,
-    modifier: Modifier = Modifier, onClick: () -> Unit,
+    shape: androidx.compose.ui.graphics.Shape, modifier: Modifier = Modifier, onClick: () -> Unit,
 ) {
     val c = MaterialTheme.colorScheme
     val animScale = LocalAnimScale.current
@@ -114,7 +114,8 @@ private fun NavItem(
     // The icon pops with a little bounce when its tab is selected.
     val pop by animateFloatAsState(if (selected) 1.18f else 1f, spring(dampingRatio = 0.55f, stiffness = 300f), label = "pop")
     val tint = fg
-    val base = modifier.clickable(onClick = onClick)
+    // Clipped to the selection shape so the press ripple is rounded like the highlight, not a square.
+    val base = modifier.clip(shape).clickable(onClick = onClick)
     val iconMod = Modifier.graphicsLayer { scaleX = pop; scaleY = pop }
     when (type) {
         1 -> Box(base.padding(horizontal = 18.dp, vertical = 12.dp), contentAlignment = Alignment.Center) { Icon(icon, label, iconMod, tint = tint) }
@@ -206,7 +207,7 @@ private fun FloatingNav(items: List<Pair<String, ImageVector>>, selected: Int, b
                 ) {
                     items.forEachIndexed { i, (label, icon) ->
                         NavItem(
-                            label, icon, i == selected, g.type, g.selection,
+                            label, icon, i == selected, g.type, g.selection, itemShape,
                             (if (dock) Modifier.weight(1f) else Modifier).onGloballyPositioned {
                                 val p = it.positionInParent()
                                 val now = intArrayOf(p.x.toInt(), p.y.toInt(), it.size.width, it.size.height)
