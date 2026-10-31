@@ -77,21 +77,48 @@ fun Root(app: AppEnv) {
 /** How much room lists leave at the bottom: more when the floating bar and button overlay the content. */
 internal val LocalListBottom = androidx.compose.runtime.compositionLocalOf { 96.dp }
 
+/** One destination in the floating bar. How it looks depends on the bar [type]. */
+@Composable
+private fun NavItem(label: String, icon: ImageVector, selected: Boolean, type: Int, shape: androidx.compose.ui.graphics.Shape, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val c = MaterialTheme.colorScheme
+    val fg = if (selected) c.onPrimaryContainer else c.onSurface
+    val bg = if (selected) c.primaryContainer.copy(alpha = 0.9f) else Color.Transparent
+    val base = modifier.clip(shape).background(bg).clickable(onClick = onClick)
+    when (type) {
+        1 -> Box(base.padding(horizontal = 18.dp, vertical = 12.dp), contentAlignment = Alignment.Center) { Icon(icon, label, tint = fg) }
+        2, 3 -> Column(base.padding(horizontal = 14.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(icon, label, tint = fg)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = fg, maxLines = 1)
+        }
+        else -> Row(
+            base.padding(horizontal = if (selected) 20.dp else 16.dp, vertical = 12.dp).animateContentSize(),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(icon, label, tint = fg)
+            if (selected) Text(label, style = MaterialTheme.typography.labelLarge, color = fg)
+        }
+    }
+}
+
 /**
- * Liquid Glass pill that floats over the content (no bar behind it, so the page scrolls underneath).
- * The selected item expands to show its label. [backdrop] holds the page content it refracts.
+ * Liquid Glass bar that floats over the content (no bar behind it, so the page scrolls underneath).
+ * [backdrop] holds the page content it refracts; [g] is the user's glass style, including bar type and corner radius.
  */
 @Composable
 private fun FloatingNav(items: List<Pair<String, ImageVector>>, selected: Int, backdrop: com.kyant.backdrop.backdrops.LayerBackdrop, g: GlassStyle, onSelect: (Int) -> Unit) {
     val c = MaterialTheme.colorScheme
     val tint = c.surfaceContainerHigh.copy(alpha = g.tint)
     val edge = when (g.edgeStyle) { 1 -> Highlight.Ambient; 2 -> Highlight.Plain; else -> Highlight.Default }
-    Box(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 24.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
+    val barShape = RoundedCornerShape(g.radius.dp)
+    val itemShape = RoundedCornerShape((g.radius - 6f).coerceAtLeast(0f).dp)
+    val dock = g.type == 3
+    Box(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = if (dock) 12.dp else 24.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
         Row(
             Modifier
+                .then(if (dock) Modifier.fillMaxWidth() else Modifier)
                 .drawBackdrop(
                     backdrop = backdrop,
-                    shape = { CircleShape },
+                    shape = { barShape },
                     effects = {
                         if (g.saturation != 1f) colorControls(saturation = g.saturation)
                         blur(g.blur.dp.toPx())
@@ -103,18 +130,11 @@ private fun FloatingNav(items: List<Pair<String, ImageVector>>, selected: Int, b
                     onDrawSurface = { drawRect(tint) },
                 )
                 .padding(6.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = if (dock) Arrangement.SpaceEvenly else Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             items.forEachIndexed { i, (label, icon) ->
-                val sel = i == selected
-                Row(
-                    Modifier.clip(CircleShape).background(if (sel) c.primaryContainer.copy(alpha = 0.9f) else Color.Transparent)
-                        .clickable { onSelect(i) }.padding(horizontal = if (sel) 20.dp else 16.dp, vertical = 12.dp).animateContentSize(),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Icon(icon, label, tint = if (sel) c.onPrimaryContainer else c.onSurface)
-                    if (sel) Text(label, style = MaterialTheme.typography.labelLarge, color = c.onPrimaryContainer)
-                }
+                NavItem(label, icon, i == selected, g.type, itemShape, if (dock) Modifier.weight(1f) else Modifier) { onSelect(i) }
             }
         }
     }

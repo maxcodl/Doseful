@@ -45,6 +45,19 @@ fun GlassEditor(app: AppEnv) {
         FilledTonalButton({ s.updateFloatingNav(true) }, shapes = ButtonDefaults.shapes()) { Text("Switch to floating bar") }
     }
 
+    Group("Style")
+    Choice(listOf("Pill" to 0, "Icons" to 1, "Labels" to 2, "Dock" to 3), g.type, { set(g.copy(type = it)) })
+    Text(
+        when (g.type) {
+            0 -> "The selected item expands to show its name."
+            1 -> "Compact bar with icons only."
+            2 -> "Every item shows its name under the icon."
+            else -> "A wide bar that spans the screen."
+        },
+        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Tweak("Edge radius", g.radius, 0f..48f, " dp") { set(g.copy(radius = it)) }
+
     Group("Glass")
     Tweak("Blur", g.blur, 0f..30f, " dp") { set(g.copy(blur = it)) }
     Tweak("Refraction height", g.lensHeight, 0f..48f, " dp") { set(g.copy(lensHeight = it)) }
