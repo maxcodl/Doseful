@@ -65,6 +65,8 @@ interface AppDao {
     @Transaction @Query("SELECT * FROM Schedule ORDER BY minuteOfDay")
     fun schedules(): Flow<List<ScheduleWithMedicine>>
 
+    @Transaction @Query("SELECT * FROM Schedule ORDER BY minuteOfDay") suspend fun schedulesNow(): List<ScheduleWithMedicine>
+    @Query("SELECT * FROM DoseLog WHERE epochDay = :day") suspend fun logsNow(day: Long): List<DoseLog>
     @Query("SELECT * FROM DoseLog WHERE epochDay = :day") fun logs(day: Long): Flow<List<DoseLog>>
     @Query("SELECT * FROM DoseLog WHERE epochDay BETWEEN :from AND :to")
     fun logsBetween(from: Long, to: Long): Flow<List<DoseLog>>

@@ -108,6 +108,12 @@ class ThemeSettings(ctx: Context) {
     var amoled by mutableStateOf(sp.getBoolean("amoled", false))
         private set
 
+    /** True (default) = reminders ring like an alarm; false = a normal notification sound. */
+    var reminderAlarm by mutableStateOf(sp.getBoolean("reminder_alarm", true))
+        private set
+
+    fun updateReminderAlarm(b: Boolean) { sp.edit().putBoolean("reminder_alarm", b).apply(); reminderAlarm = b }
+
     /** False = standard bottom bar, true = floating pill. */
     var floatingNav by mutableStateOf(sp.getBoolean("floating_nav", false))
         private set

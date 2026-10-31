@@ -79,6 +79,22 @@ fun ProfileScreen(app: AppEnv) {
         }
 
         SectionCard("Reminders") {
+            Text("Reminder sound", style = MaterialTheme.typography.titleSmall)
+            Choice(listOf("Alarm" to true, "Notification" to false), app.theme.reminderAlarm, { app.theme.updateReminderAlarm(it) })
+            Text(
+                if (app.theme.reminderAlarm) "Rings like an alarm, even on silent, until you tap Taken or Skip (up to 5 minutes)."
+                else "A normal notification sound and vibration.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            FilledTonalButton({ Alarms.notifyTest(ctx, app.theme.reminderAlarm) }, shapes = ButtonDefaults.shapes()) { Text("Send test reminder") }
+            HorizontalDivider()
+            Text("Persistent notification", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Doseful keeps a quiet summary of today's doses in your notification shade. To hide it, turn off \"Today's progress\" in your phone's notification settings.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedButton({ Alarms.openChannelSettings(ctx, Alarms.CH_STATUS) }, shapes = ButtonDefaults.shapes()) { Text("Show or hide it") }
+            HorizontalDivider()
             if (!Alarms.backgroundAllowed(ctx)) {
                 Text("Battery saver may delay reminders. Allow Doseful to run in the background.", color = MaterialTheme.colorScheme.error)
                 OutlinedButton({ Alarms.requestBackground(ctx) }, shapes = ButtonDefaults.shapes()) { Text("Allow background activity") }

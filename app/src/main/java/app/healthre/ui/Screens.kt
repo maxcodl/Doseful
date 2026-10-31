@@ -249,10 +249,10 @@ internal fun Today(app: AppEnv) {
                         }
                     }
                     if (log == null) {
-                        FilledTonalIconButton({ scope.launch { Alarms.skipDose(dao, sm.schedule.id, today) } }) { Icon(Icons.Rounded.Close, "Skip") }
+                        FilledTonalIconButton({ scope.launch { Alarms.skipDose(ctx, dao, sm.schedule.id, today, app.demo) } }) { Icon(Icons.Rounded.Close, "Skip") }
                         Spacer(Modifier.width(8.dp))
                         FilledIconButton({ scope.launch { Alarms.takeDose(ctx, dao, sm.schedule.id, today, app.demo) } }) { Icon(Icons.Rounded.Check, "Taken") }
-                    } else TextButton({ scope.launch { Alarms.undoDose(dao, sm.schedule.id, today) } }) { Text("Undo") }
+                    } else TextButton({ scope.launch { Alarms.undoDose(ctx, dao, sm.schedule.id, today, app.demo) } }) { Text("Undo") }
                 }
             }
         }
