@@ -215,6 +215,6 @@ fun AppearanceSection(app: AppEnv) {
             colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
         )
         Tweak("Corner roundness", s.uiRadius, 0f..150f, " %") { s.updateUiRadius(it) }
-        Tweak("Animation duration", s.animScale, 0f..3f, " ×", 1) { s.updateAnimScale(it) }
+        Tweak("Animation duration", s.animScale, 0f..1.5f, " ×", 2) { s.updateAnimScale(it) }
     }
 }

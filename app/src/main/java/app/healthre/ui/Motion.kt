@@ -18,8 +18,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
-/** Multiplies every animation duration. 1 = normal, higher = slower, 0 = instant. Set in Settings > Theme. */
-val LocalAnimScale = compositionLocalOf { 1.5f }
+/** Multiplies every animation duration: 0 = instant, 0.6 = default, 1.5 = slowest. Set in Settings > Theme. */
+val LocalAnimScale = compositionLocalOf { 0.6f }
 
 /** A smooth tween whose duration and delay follow the animation speed setting. */
 fun <T> tw(ms: Int, scale: Float, delayMs: Int = 0, easing: Easing = EaseInOutCubic): TweenSpec<T> =

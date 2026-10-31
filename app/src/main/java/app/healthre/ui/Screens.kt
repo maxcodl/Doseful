@@ -24,6 +24,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.animation.core.EaseInOutCubic
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.unit.IntOffset
@@ -110,7 +112,7 @@ private fun NavItem(
     val fgTarget = when { !selected -> c.onSurface; selection == 0 -> c.onPrimaryContainer; else -> c.primary }
     val fg by animateColorAsState(fgTarget, tw(450, animScale), label = "fg")
     // The icon pops with a little bounce when its tab is selected.
-    val pop by animateFloatAsState(if (selected) 1.18f else 1f, spring(dampingRatio = 0.4f, stiffness = 320f / animScale.coerceIn(0.3f, 3f)), label = "pop")
+    val pop by animateFloatAsState(if (selected) 1.18f else 1f, spring(dampingRatio = 0.55f, stiffness = 300f), label = "pop")
     val tint = fg
     val base = modifier.clickable(onClick = onClick)
     val iconMod = Modifier.graphicsLayer { scaleX = pop; scaleY = pop }
@@ -148,14 +150,23 @@ private fun FloatingNav(items: List<Pair<String, ImageVector>>, selected: Int, b
     val itemShape = RoundedCornerShape((g.selRadius / 2f).toInt().coerceIn(0, 50))
     val dock = g.type == 3
 
-    // Where each item sits inside the bar, so the highlight knows where to glide.
+    // Where each item sits inside the bar (live, so it follows items that grow and shrink).
     val spots = remember { mutableStateMapOf<Int, IntArray>() }
-    val spot = spots[selected]
-    val glide = if (animScale <= 0f) snap<Int>() else spring<Int>(dampingRatio = 0.62f, stiffness = 380f / animScale.coerceIn(0.3f, 3f))
-    val ix by animateIntAsState(spot?.get(0) ?: 0, glide, label = "ix")
-    val iy by animateIntAsState(spot?.get(1) ?: 0, glide, label = "iy")
-    val iw by animateIntAsState(spot?.get(2) ?: 0, glide, label = "iw")
-    val ih by animateIntAsState(spot?.get(3) ?: 0, glide, label = "ih")
+    // One eased position drives the highlight: it blends the live rectangles of the two items it is between.
+    // Following live rectangles (instead of chasing a moving target) keeps the motion smooth.
+    val posSpec: AnimationSpec<Float> = if (animScale <= 0f) snap() else tw(520, animScale, easing = EaseInOutCubic)
+    val pos by animateFloatAsState(selected.toFloat(), posSpec, label = "pos")
+    val last = items.lastIndex
+    val i0 = pos.toInt().coerceIn(0, last)
+    val i1 = (i0 + 1).coerceAtMost(last)
+    val frac = (pos - i0).coerceIn(0f, 1f)
+    val s0 = spots[i0]
+    val s1 = spots[i1]
+    val spot = if (s0 != null && s1 != null) IntArray(4) { k -> (s0[k] + (s1[k] - s0[k]) * frac).toInt() } else null
+    val ix = spot?.get(0) ?: 0
+    val iy = spot?.get(1) ?: 0
+    val iw = spot?.get(2) ?: 0
+    val ih = spot?.get(3) ?: 0
 
     Box(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = if (dock) 12.dp else 24.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
         // The library only recomputes its lens and edge shader when the size changes, so rebuild the bar when the corner radius changes.
