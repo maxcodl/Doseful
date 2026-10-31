@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/maxcodl/Doseful/releases/latest"><img src="https://img.shields.io/github/v/release/maxcodl/Doseful?label=Download&color=00796B" alt="Latest release"></a>
-  <img src="https://img.shields.io/badge/Size-~1.7%20MB-00796B" alt="App size">
+  <a href="https://github.com/maxcodl/Doseful/releases/latest"><img src="https://img.shields.io/github/v/release/maxcodl/Doseful?label=Download&color=00796B&cacheSeconds=300&v=2" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/Size-~1.6%20MB-00796B" alt="App size">
   <img src="https://img.shields.io/badge/Platform-Android%208.0%2B-3DDC84" alt="Android 8.0+">
   <img src="https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF" alt="Kotlin and Jetpack Compose">
   <img src="https://img.shields.io/badge/Network-none-blue" alt="No network permission">
@@ -39,7 +39,7 @@
 - **Profile with photo.** Pick a picture from the system photo picker. It never leaves the device.
 - **Backup and restore.** Export everything to a single JSON file and restore it later.
 - **Try before you commit.** A demo mode in onboarding runs the full app on fake data. Your own data is never touched.
-- **Tiny.** The release APK is about 1.7 MB.
+- **Tiny.** The release APK is about 1.6 MB.
 
 ## Download
 
