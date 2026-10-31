@@ -77,9 +77,16 @@ jobs:
           mkdir dist
           cp app/build/outputs/apk/release/app-release.apk "dist/Doseful-${GITHUB_REF_NAME}.apk"
 
+      - name: Release notes from the changelog
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          awk -v v="$v" 'index($0, "## [" v "]") == 1 {p=1; next} /^## / && p {exit} p' CHANGELOG.md > notes.md
+          test -s notes.md || echo "Doseful $v" > notes.md
+
       - name: Publish release
         if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*.apk
-          generate_release_notes: true
+          body_path: notes.md
