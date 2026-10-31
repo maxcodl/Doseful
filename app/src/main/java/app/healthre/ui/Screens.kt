@@ -24,6 +24,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.layout
 import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.animation.core.EaseInOutCubic
@@ -268,28 +269,28 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
                         scaleX = scale; scaleY = scale; alpha = 1f - 0.3f * backProgress
                     }) {
                         val animScale = LocalAnimScale.current
-                        // Entrance animations play only the first time a tab is opened.
-                        val visited = remember { mutableSetOf<Int>() }
-                        val firstVisit = tab !in visited
-                        LaunchedEffect(tab) { visited.add(tab) }
-                        androidx.compose.runtime.CompositionLocalProvider(LocalEntrance provides firstVisit) {
-                        AnimatedContent(
-                            targetState = tab,
-                            // A quick crossfade: no sliding content under the glass bar and no waiting before the new page appears.
-                            // The old page stays fully visible while the new one fades in over it, so the screen never dips to the background colour.
-                            transitionSpec = { fadeIn(tw(180, animScale)) togetherWith ExitTransition.None },
-                            label = "tab",
-                        ) { t ->
-                            when (t) {
-                                0 -> Today(app)
-                                1 -> Medicines(app) { editing = it }
-                                2 -> History(app)
-                                else -> AnimatedContent(
-                                    targetState = page,
-                                    transitionSpec = { fadeIn(tw(180, animScale)) togetherWith ExitTransition.None },
-                                    label = "page",
-                                ) { pg ->
-                                    when (pg) {
+                        // Every tab stays composed; the hidden ones are measured but never placed. Switching is then instant:
+                        // data is already loaded, scroll positions are kept, and there is no empty frame or black flash.
+                        val fade = remember { androidx.compose.animation.core.Animatable(1f) }
+                        LaunchedEffect(tab) {
+                            fade.snapTo(0.4f)
+                            fade.animateTo(1f, tw(200, animScale))
+                        }
+                        (0..3).forEach { i ->
+                            Box(
+                                Modifier.fillMaxSize().then(
+                                    if (i == tab) Modifier.graphicsLayer { alpha = fade.value }
+                                    else Modifier.layout { measurable, constraints ->
+                                        val placeable = measurable.measure(constraints)
+                                        layout(placeable.width, placeable.height) {}
+                                    },
+                                ),
+                            ) {
+                                when (i) {
+                                    0 -> Today(app)
+                                    1 -> Medicines(app) { editing = it }
+                                    2 -> History(app)
+                                    else -> when (page) {
                                         1 -> SettingsScreen(app) { page = 0 }
                                         2 -> AppointmentsScreen(app) { page = 0 }
                                         3 -> HealthLogScreen(app) { page = 0 }
@@ -297,7 +298,6 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
                                     }
                                 }
                             }
-                        }
                         }
                     }
                 }
