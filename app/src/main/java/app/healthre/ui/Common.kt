@@ -193,19 +193,3 @@ fun AppearanceSection(app: AppEnv) {
         )
     }
 }
-
-/** Install status for the optional scanner add-on, with a browser link to get it. */
-@Composable
-fun ScannerCard() {
-    val ctx = LocalContext.current
-    var tick by remember { mutableIntStateOf(0) }
-    androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) { tick++ }
-    val installed = remember(tick) { app.healthre.Scanner.installed(ctx) }
-    if (installed) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Icon(Icons.Rounded.CheckCircle, null, tint = MaterialTheme.colorScheme.primary)
-        Text("Scanner add-on installed", style = MaterialTheme.typography.titleSmall)
-    } else FilledTonalButton(
-        { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(app.healthre.Scanner.DOWNLOAD_URL))) },
-        shapes = ButtonDefaults.shapes(),
-    ) { Icon(Icons.Rounded.Download, null); Spacer(Modifier.width(8.dp)); Text("Get the scanner add-on") }
-}

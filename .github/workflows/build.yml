@@ -49,7 +49,6 @@ jobs:
           name: doseful-debug
           path: |
             app/build/outputs/apk/debug/*.apk
-            scanner/build/outputs/apk/debug/*.apk
 
       - name: Set up signing
         if: ${{ startsWith(github.ref, 'refs/tags/v') }}
@@ -77,7 +76,6 @@ jobs:
         run: |
           mkdir dist
           cp app/build/outputs/apk/release/app-release.apk "dist/Doseful-${GITHUB_REF_NAME}.apk"
-          cp scanner/build/outputs/apk/release/scanner-release.apk "dist/Doseful-Scanner-${GITHUB_REF_NAME}.apk"
 
       - name: Publish release
         if: ${{ startsWith(github.ref, 'refs/tags/v') }}

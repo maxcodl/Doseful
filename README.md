@@ -51,15 +51,9 @@ Get the latest APK from the **[Releases page](https://github.com/maxcodl/Doseful
 
 Doseful declares **no `INTERNET` permission**, so it cannot send anything anywhere. There are no accounts, no analytics and no ads. Your medicines, history and profile live in the app's private storage. Backups are plain JSON files that you control.
 
-## Optional: package scanner
+## Roadmap
 
-Point your camera at a medicine box and the form fills itself in, using on-device text recognition. This needs Google's ML Kit, which is large and closed-source, so it is **a separate add-on app** instead of part of Doseful:
-
-- Doseful itself stays tiny, fully open source and offline.
-- Download **Doseful Scanner** from the [Releases page](https://github.com/maxcodl/Doseful/releases/latest) (about 13 MB, arm64 only). Doseful notices it automatically and shows a **Scan package** button.
-- The add-on has no network permission either. It only reads the photo and hands the recognised text back to Doseful.
-
-Scanning is best-effort. Always check the filled-in fields against the package.
+- **Package scanner:** fill the medicine form by photographing the box. A first version (on-device text recognition plus simple parsing) read too much noise to be useful, so it was removed. It will come back once it is accurate enough, as an optional add-on so the main app stays tiny and offline.
 
 ## Try it with sample data
 
@@ -78,7 +72,7 @@ You need JDK 17 and the Android SDK (API 37).
 git clone https://github.com/maxcodl/Doseful.git
 cd Doseful
 ./gradlew assembleDebug      # app/build/outputs/apk/debug/
-./gradlew assembleRelease    # app and scanner release APKs
+./gradlew assembleRelease    # app/build/outputs/apk/release/
 ```
 
 Release builds are signed with `key.properties` if it exists in the project root, and fall back to the shared Android debug key otherwise:
@@ -94,11 +88,11 @@ keyPassword=...
 
 ### Automatic builds
 
-GitHub Actions builds every push and pull request. Pushing a tag such as `v0.1.0` builds the signed release APKs and publishes them as a GitHub Release. See [`.github/workflows/build.yml`](.github/workflows/build.yml) for the secrets it needs.
+GitHub Actions builds every push and pull request. Pushing a tag such as `v0.1.0` builds the signed release APK and publishes it as a GitHub Release. See [`.github/workflows/build.yml`](.github/workflows/build.yml) for the secrets it needs.
 
 ## Built with
 
-Kotlin, Jetpack Compose, Material 3 Expressive, Room and AlarmManager. The scanner add-on uses Google ML Kit text recognition.
+Kotlin, Jetpack Compose, Material 3 Expressive, Room and AlarmManager.
 
 ## Credits
 

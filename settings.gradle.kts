@@ -13,4 +13,3 @@ dependencyResolutionManagement {
 }
 rootProject.name = "HealthRe"
 include(":app")
-include(":scanner")

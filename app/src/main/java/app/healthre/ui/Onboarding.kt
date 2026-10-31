@@ -35,7 +35,7 @@ import app.healthre.Alarms
 import app.healthre.AppEnv
 import kotlinx.coroutines.launch
 
-private const val PAGES = 6
+private const val PAGES = 5
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -89,7 +89,6 @@ fun Onboarding(app: AppEnv) {
                     1 -> Features()
                     2 -> Look(app)
                     3 -> ProfilePage(app, form)
-                    4 -> ScannerPage()
                     else -> Permissions()
                 }
             }
@@ -208,28 +207,4 @@ private fun PermissionCard(icon: ImageVector, title: String, text: String, grant
             else FilledTonalButton(onAllow, shapes = ButtonDefaults.shapes()) { Text("Allow") }
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun ScannerPage() {
-    val c = MaterialTheme.colorScheme
-    SpinningShape(MaterialShapes.Clover8Leaf.toShape(), 200.dp, c.secondaryContainer, 30) {
-        Icon(Icons.Rounded.PhotoCamera, null, Modifier.size(72.dp), tint = c.onSecondaryContainer)
-    }
-    Spacer(Modifier.height(24.dp))
-    Text("Scan your boxes", style = MaterialTheme.typography.displaySmall, textAlign = TextAlign.Center)
-    Spacer(Modifier.height(4.dp))
-    Text("Optional", style = MaterialTheme.typography.labelLarge, color = c.primary)
-    Spacer(Modifier.height(12.dp))
-    Text(
-        "Point your camera at a medicine box and the form fills itself in. It runs on your phone, offline. " +
-            "It is a separate add-on (about 13 MB) so Doseful itself stays tiny and never touches the internet. " +
-            "You download it from your browser.",
-        textAlign = TextAlign.Center, color = c.onSurfaceVariant,
-    )
-    Spacer(Modifier.height(20.dp))
-    ScannerCard()
-    Spacer(Modifier.height(8.dp))
-    Text("Not now? Just tap Next. You can get it later from Profile.", style = MaterialTheme.typography.bodySmall, color = c.onSurfaceVariant, textAlign = TextAlign.Center)
 }

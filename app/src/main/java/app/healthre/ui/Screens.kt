@@ -35,7 +35,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import app.healthre.Alarms
 import app.healthre.AppEnv
-import app.healthre.Scanner
 import app.healthre.data.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
@@ -206,6 +205,7 @@ internal fun MedicineDialog(app: AppEnv, initial: Medicine?, onDone: () -> Unit)
     val times: SnapshotStateList<Int> = remember { mutableStateListOf<Int>().also { if (initial == null) it.add(8 * 60) } }
     var mask by remember { mutableIntStateOf(0b1111111) }
     val picker = rememberTimePickerState(8, 0, is24Hour = true)
+    var pickTime by remember { mutableStateOf(false) }
 
     LaunchedEffect(initial) {
         if (initial != null) {
@@ -215,27 +215,21 @@ internal fun MedicineDialog(app: AppEnv, initial: Medicine?, onDone: () -> Unit)
         }
     }
 
-    val scan = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { res ->
-        res.data?.getStringExtra(Scanner.EXTRA_TEXT)?.let { text ->
-            val r = Scanner.parse(text)
-            if (r.name.isNotBlank()) name = r.name
-            if (r.strength.isNotBlank()) strength = r.strength
-            if (r.form.isNotBlank()) form = r.form
-            if (r.expiry.isNotBlank()) expiry = r.expiry
-            if (r.batch.isNotBlank()) batch = r.batch
-            if (r.manufacturer.isNotBlank()) mfr = r.manufacturer
-            toast(ctx, "Scanned. Check every field against the package.")
-        }
-    }
+    if (pickTime) AlertDialog(
+        onDismissRequest = { pickTime = false },
+        title = { Text("Add time") },
+        text = { TimePicker(picker) },
+        confirmButton = {
+            TextButton({ val t = picker.hour * 60 + picker.minute; if (t !in times) times.add(t); pickTime = false }) { Text("Add") }
+        },
+        dismissButton = { TextButton({ pickTime = false }) { Text("Cancel") } },
+    )
 
     AlertDialog(
         onDismissRequest = onDone,
         title = { Text(if (initial == null) "Add medicine" else "Edit medicine") },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (remember { Scanner.installed(ctx) }) FilledTonalButton({ scan.launch(Scanner.intent()) }) {
-                    Icon(Icons.Rounded.PhotoCamera, null); Spacer(Modifier.width(8.dp)); Text("Scan package")
-                }
                 AppField(name, { name = it }, label = { Text("Name") }, singleLine = true)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AppField(strength, { strength = it }, Modifier.weight(1f), label = { Text("Strength") }, singleLine = true)
@@ -264,8 +258,7 @@ internal fun MedicineDialog(app: AppEnv, initial: Medicine?, onDone: () -> Unit)
                         InputChip(false, { times.remove(t) }, { Text(fmt(t)) }, trailingIcon = { Icon(Icons.Rounded.Close, "Remove", Modifier.size(18.dp)) })
                     }
                 }
-                TimeInput(picker)
-                OutlinedButton({ val t = picker.hour * 60 + picker.minute; if (t !in times) times.add(t) }) { Text("Add time") }
+                OutlinedButton({ pickTime = true }) { Text("Add time") }
             }
         },
         confirmButton = {

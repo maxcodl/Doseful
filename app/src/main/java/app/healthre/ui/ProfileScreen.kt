@@ -70,11 +70,6 @@ fun ProfileScreen(app: AppEnv) {
 
         SectionCard("Appearance") { AppearanceSection(app) }
 
-        SectionCard("Scanner add-on (optional)") {
-            Text("Fill the medicine form by photographing the box. Works offline through a small separate app.", style = MaterialTheme.typography.bodyMedium)
-            ScannerCard()
-        }
-
         SectionCard("Backup") {
             Text("A JSON file with your profile, photo, medicines and history.", style = MaterialTheme.typography.bodyMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
