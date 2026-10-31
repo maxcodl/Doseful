@@ -31,12 +31,12 @@ fun Modifier.entrance(index: Int): Modifier {
     val scale = LocalAnimScale.current
     var shown by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        delay((index.coerceAtMost(8) * 70 * scale).toLong())
+        delay((index.coerceAtMost(8) * 40 * scale).toLong())
         shown = true
     }
-    val a by animateFloatAsState(if (shown) 1f else 0f, tw(650, scale, easing = EaseOutCubic), label = "entrance")
+    val a by animateFloatAsState(if (shown) 1f else 0f, tw(450, scale, easing = EaseOutCubic), label = "entrance")
     return this.graphicsLayer {
         alpha = a
-        translationY = (1f - a) * 36.dp.toPx()
+        translationY = (1f - a) * 24.dp.toPx()
     }
 }

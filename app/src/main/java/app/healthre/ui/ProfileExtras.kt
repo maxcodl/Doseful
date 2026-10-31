@@ -157,8 +157,8 @@ private fun MedicalCard(app: AppEnv, m: MedicalId, big: Boolean = false) {
     val conditions = splitItems(m.conditions)
     Box(Modifier.fillMaxWidth().clip(corner(28)).background(Brush.linearGradient(listOf(c.primaryContainer, c.tertiaryContainer)))) {
         // Soft decorative shapes behind the content.
-        Box(Modifier.align(Alignment.TopEnd).offset(x = 56.dp, y = (-56).dp).size(200.dp).clip(MaterialShapes.Cookie12Sided.toShape()).background(fg.copy(alpha = 0.07f)))
-        Box(Modifier.align(Alignment.BottomStart).offset(x = (-40).dp, y = 44.dp).size(130.dp).clip(MaterialShapes.Clover4Leaf.toShape()).background(fg.copy(alpha = 0.06f)))
+        Box(Modifier.align(Alignment.BottomEnd).offset(x = 70.dp, y = 70.dp).size(220.dp).clip(MaterialShapes.Cookie12Sided.toShape()).background(fg.copy(alpha = 0.07f)))
+        Box(Modifier.align(Alignment.TopStart).offset(x = (-36).dp, y = (-36).dp).size(110.dp).clip(MaterialShapes.Clover4Leaf.toShape()).background(fg.copy(alpha = 0.06f)))
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Rounded.MedicalServices, null, tint = fg)

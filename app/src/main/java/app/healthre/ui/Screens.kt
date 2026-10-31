@@ -24,6 +24,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.runtime.mutableStateMapOf
@@ -115,7 +116,7 @@ private fun NavItem(
     val pop by animateFloatAsState(if (selected) 1.18f else 1f, spring(dampingRatio = 0.55f, stiffness = 300f), label = "pop")
     val tint = fg
     // Clipped to the selection shape so the press ripple is rounded like the highlight, not a square.
-    val base = modifier.clip(shape).clickable(onClick = onClick)
+    val base = modifier.clip(shape).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick)
     val iconMod = Modifier.graphicsLayer { scaleX = pop; scaleY = pop }
     when (type) {
         1 -> Box(base.padding(horizontal = 18.dp, vertical = 12.dp), contentAlignment = Alignment.Center) { Icon(icon, label, iconMod, tint = tint) }
@@ -268,11 +269,8 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
                         val animScale = LocalAnimScale.current
                         AnimatedContent(
                             targetState = tab,
-                            transitionSpec = {
-                                val dir = if (targetState > initialState) 1 else -1
-                                (fadeIn(tw(550, animScale, 150)) + slideInHorizontally(tw(650, animScale)) { dir * it / 8 }) togetherWith
-                                    (fadeOut(tw(300, animScale)) + slideOutHorizontally(tw(500, animScale)) { -dir * it / 8 })
-                            },
+                            // A quick crossfade: no sliding content under the glass bar and no waiting before the new page appears.
+                            transitionSpec = { fadeIn(tw(240, animScale)) togetherWith fadeOut(tw(140, animScale)) },
                             label = "tab",
                         ) { t ->
                             when (t) {
@@ -281,9 +279,7 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
                                 2 -> History(app)
                                 else -> AnimatedContent(
                                     targetState = page,
-                                    transitionSpec = {
-                                        (fadeIn(tw(500, animScale, 100)) + slideInVertically(tw(600, animScale)) { it / 14 }) togetherWith fadeOut(tw(250, animScale))
-                                    },
+                                    transitionSpec = { fadeIn(tw(240, animScale)) togetherWith fadeOut(tw(140, animScale)) },
                                     label = "page",
                                 ) { pg ->
                                     when (pg) {
