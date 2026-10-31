@@ -186,6 +186,12 @@ class ThemeSettings(ctx: Context) {
 
     fun updateReminderAlarm(b: Boolean) { sp.edit().putBoolean("reminder_alarm", b).apply(); reminderAlarm = b }
 
+    /** Swipe a dose card right to mark it taken, left to skip; swipe a medicine right to edit, left to delete. */
+    var swipeActions by mutableStateOf(sp.getBoolean("swipe_actions", true))
+        private set
+
+    fun updateSwipeActions(b: Boolean) { sp.edit().putBoolean("swipe_actions", b).apply(); swipeActions = b }
+
     /** Multiplies animation durations: 0 = instant, 0.6 = default, 1.5 = slowest. */
     var animScale by mutableStateOf(sp.getFloat("anim_scale_v2", 0.6f).coerceIn(0f, 1.5f))
         private set

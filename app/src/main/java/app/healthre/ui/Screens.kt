@@ -24,6 +24,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import kotlin.math.absoluteValue
 import androidx.compose.ui.layout.layout
 import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -142,7 +143,7 @@ private fun NavItem(
  * One highlight slides and stretches to the selected item with a springy motion.
  */
 @Composable
-private fun FloatingNav(items: List<Pair<String, ImageVector>>, selected: Int, backdrop: com.kyant.backdrop.backdrops.LayerBackdrop, g: GlassStyle, onSelect: (Int) -> Unit) {
+private fun FloatingNav(items: List<Pair<String, ImageVector>>, selected: Int, position: Float, backdrop: com.kyant.backdrop.backdrops.LayerBackdrop, g: GlassStyle, onSelect: (Int) -> Unit) {
     val c = MaterialTheme.colorScheme
     val animScale = LocalAnimScale.current
     val density = androidx.compose.ui.platform.LocalDensity.current
@@ -156,10 +157,9 @@ private fun FloatingNav(items: List<Pair<String, ImageVector>>, selected: Int, b
 
     // Where each item sits inside the bar (live, so it follows items that grow and shrink).
     val spots = remember { mutableStateMapOf<Int, IntArray>() }
-    // One eased position drives the highlight: it blends the live rectangles of the two items it is between.
-    // Following live rectangles (instead of chasing a moving target) keeps the motion smooth.
-    val posSpec: AnimationSpec<Float> = if (animScale <= 0f) snap() else tw(520, animScale, easing = EaseInOutCubic)
-    val pos by animateFloatAsState(selected.toFloat(), posSpec, label = "pos")
+    // The pager's own position (it already animates, and follows your finger while swiping) drives the highlight, blending the
+    // live rectangles of the two items it is between. Following live rectangles keeps the motion smooth.
+    val pos = position
     val last = items.lastIndex
     val i0 = pos.toInt().coerceIn(0, last)
     val i1 = (i0 + 1).coerceAtMost(last)
@@ -224,10 +224,15 @@ private fun FloatingNav(items: List<Pair<String, ImageVector>>, selected: Int, b
     }
 }
 
-/** The whole signed-in app. The demo reuses it unchanged, with [header] shown above the tabs. */
+/** The whole signed-in app. The demo reuses it unchanged, with [header] shown above the pages. */
 @Composable
 fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
-    var tab by remember { mutableIntStateOf(0) }
+    val animScale = LocalAnimScale.current
+    val scope = rememberCoroutineScope()
+    // The four tabs are pages of a carousel: swipe sideways, or tap the bar. All stay composed, so nothing rebuilds or goes blank.
+    val pager = androidx.compose.foundation.pager.rememberPagerState(initialPage = 0) { 4 }
+    val tab = pager.currentPage
+    val position = pager.currentPage + pager.currentPageOffsetFraction
     var editing by remember { mutableStateOf<Medicine?>(null) }
     var adding by remember { mutableStateOf(false) }
     // Profile tab sub-pages: 0 = profile, 1 = settings, 2 = appointments, 3 = health log.
@@ -237,7 +242,7 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
     PredictiveBackHandler(enabled = tab != 0) { progress ->
         try {
             progress.collect { backProgress = it.progress }
-            tab = 0
+            pager.animateScrollToPage(0)
             backProgress = 0f
         } catch (e: kotlin.coroutines.cancellation.CancellationException) {
             backProgress = 0f
@@ -245,6 +250,7 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
     }
     // Back from a sub-page returns to Profile first.
     androidx.activity.compose.BackHandler(enabled = tab == 3 && page != 0) { page = 0 }
+    fun goTo(i: Int) { scope.launch { pager.animateScrollToPage(i, animationSpec = tw(420, animScale)) } }
     val floating = app.theme.floatingNav
     val backdrop = com.kyant.backdrop.backdrops.rememberLayerBackdrop()
     val navItems = listOf("Today" to Icons.Rounded.Today, "Medicines" to ImageVector.vectorResource(R.drawable.ic_pill), "History" to Icons.Rounded.Insights, "Profile" to Icons.Rounded.Person)
@@ -253,7 +259,7 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
             // Standard mode uses a normal bottom bar and button. Floating mode draws both over the page instead.
             bottomBar = {
                 if (!floating) NavigationBar(containerColor = MaterialTheme.colorScheme.background, tonalElevation = 0.dp) {
-                    navItems.forEachIndexed { i, (l, ic) -> NavigationBarItem(tab == i, { tab = i }, { Icon(ic, null) }, label = { Text(l) }) }
+                    navItems.forEachIndexed { i, (l, ic) -> NavigationBarItem(tab == i, { goTo(i) }, { Icon(ic, null) }, label = { Text(l) }) }
                 }
             },
             floatingActionButton = {
@@ -264,38 +270,31 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
             Box(Modifier.padding(pad).fillMaxSize()) {
                 Column(Modifier.fillMaxSize().layerBackdrop(backdrop)) {
                     header()
-                    Box(Modifier.weight(1f).graphicsLayer {
-                        val scale = 1f - 0.08f * backProgress
-                        scaleX = scale; scaleY = scale; alpha = 1f - 0.3f * backProgress
-                    }) {
-                        val animScale = LocalAnimScale.current
-                        // Every tab stays composed; the hidden ones are measured but never placed. Switching is then instant:
-                        // data is already loaded, scroll positions are kept, and there is no empty frame or black flash.
-                        val fade = remember { androidx.compose.animation.core.Animatable(1f) }
-                        LaunchedEffect(tab) {
-                            fade.snapTo(0.4f)
-                            fade.animateTo(1f, tw(200, animScale))
-                        }
-                        (0..3).forEach { i ->
-                            Box(
-                                Modifier.fillMaxSize().then(
-                                    if (i == tab) Modifier.graphicsLayer { alpha = fade.value }
-                                    else Modifier.layout { measurable, constraints ->
-                                        val placeable = measurable.measure(constraints)
-                                        layout(placeable.width, placeable.height) {}
-                                    },
-                                ),
-                            ) {
-                                when (i) {
-                                    0 -> Today(app)
-                                    1 -> Medicines(app) { editing = it }
-                                    2 -> History(app)
-                                    else -> when (page) {
-                                        1 -> SettingsScreen(app) { page = 0 }
-                                        2 -> AppointmentsScreen(app) { page = 0 }
-                                        3 -> HealthLogScreen(app) { page = 0 }
-                                        else -> ProfileScreen(app) { page = it }
-                                    }
+                    androidx.compose.foundation.pager.HorizontalPager(
+                        state = pager,
+                        modifier = Modifier.weight(1f).graphicsLayer {
+                            val scale = 1f - 0.08f * backProgress
+                            scaleX = scale; scaleY = scale; alpha = 1f - 0.3f * backProgress
+                        },
+                        beyondViewportPageCount = 3,
+                    ) { i ->
+                        // Carousel feel: the page you are leaving shrinks and fades a little as the next one slides in.
+                        Box(
+                            Modifier.fillMaxSize().graphicsLayer {
+                                val off = ((pager.currentPage - i) + pager.currentPageOffsetFraction).absoluteValue.coerceIn(0f, 1f)
+                                val s = 1f - 0.08f * off
+                                scaleX = s; scaleY = s; alpha = 1f - 0.45f * off
+                            },
+                        ) {
+                            when (i) {
+                                0 -> Today(app)
+                                1 -> Medicines(app) { editing = it }
+                                2 -> History(app)
+                                else -> when (page) {
+                                    1 -> SettingsScreen(app) { page = 0 }
+                                    2 -> AppointmentsScreen(app) { page = 0 }
+                                    3 -> HealthLogScreen(app) { page = 0 }
+                                    else -> ProfileScreen(app) { page = it }
                                 }
                             }
                         }
@@ -303,7 +302,7 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
                 }
                 if (floating) Column(Modifier.align(Alignment.BottomCenter), horizontalAlignment = Alignment.End) {
                     if (tab <= 1) FloatingActionButton({ adding = true }, Modifier.padding(end = 24.dp)) { Icon(Icons.Rounded.Add, "Add medicine") }
-                    FloatingNav(navItems, tab, backdrop, app.theme.glass) { tab = it }
+                    FloatingNav(navItems, tab, position, backdrop, app.theme.glass) { goTo(it) }
                 }
             }
         }
@@ -429,7 +428,8 @@ internal fun Today(app: AppEnv) {
                 overdue -> Triple(Icons.Rounded.Alarm, c.errorContainer, c.onErrorContainer)
                 else -> Triple(ImageVector.vectorResource(R.drawable.ic_pill), c.secondaryContainer, c.onSecondaryContainer)
             }
-            ElevatedCard(Modifier.fillMaxWidth().entrance(3 + i)) {
+            val cardContent: @Composable () -> Unit = {
+            ElevatedCard(Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(52.dp).clip(shapes[(sm.schedule.id % shapes.size).toInt()].toShape()).background(bg), contentAlignment = Alignment.Center) {
                         Icon(statusIcon, null, tint = fg)
@@ -450,6 +450,37 @@ internal fun Today(app: AppEnv) {
                     } else TextButton({ scope.launch { Alarms.undoDose(ctx, dao, sm.schedule.id, today, app.demo) } }) { Text("Undo") }
                 }
             }
+            }
+            Box(Modifier.entrance(3 + i)) {
+                if (log == null && app.theme.swipeActions) {
+                    // Swipe right to mark taken, left to skip. Returning false snaps the card back; the list updates from the database.
+                    val swipe = rememberSwipeToDismissBoxState(confirmValueChange = { v ->
+                        when (v) {
+                            SwipeToDismissBoxValue.StartToEnd -> { scope.launch { Alarms.takeDose(ctx, dao, sm.schedule.id, today, app.demo) }; false }
+                            SwipeToDismissBoxValue.EndToStart -> { scope.launch { Alarms.skipDose(ctx, dao, sm.schedule.id, today, app.demo) }; false }
+                            else -> false
+                        }
+                    })
+                    SwipeToDismissBox(
+                        swipe,
+                        backgroundContent = {
+                            val take = swipe.dismissDirection == SwipeToDismissBoxValue.StartToEnd
+                            val skip = swipe.dismissDirection == SwipeToDismissBoxValue.EndToStart
+                            Box(
+                                Modifier.fillMaxSize().clip(MaterialTheme.shapes.medium)
+                                    .background(if (take) c.primaryContainer else if (skip) c.tertiaryContainer else Color.Transparent).padding(horizontal = 24.dp),
+                                contentAlignment = if (take) Alignment.CenterStart else Alignment.CenterEnd,
+                            ) {
+                                if (take) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Icon(Icons.Rounded.Check, null, tint = c.onPrimaryContainer); Text("Taken", color = c.onPrimaryContainer, style = MaterialTheme.typography.titleMedium)
+                                } else if (skip) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text("Skip", color = c.onTertiaryContainer, style = MaterialTheme.typography.titleMedium); Icon(Icons.Rounded.Close, null, tint = c.onTertiaryContainer)
+                                }
+                            }
+                        },
+                    ) { cardContent() }
+                } else cardContent()
+            }
         }
     }
 }
@@ -467,8 +498,9 @@ internal fun Medicines(app: AppEnv, onEdit: (Medicine) -> Unit) {
         if (meds.isEmpty()) item { Text("No medicines yet.") }
         itemsIndexed(meds, key = { _, it -> it.id }) { i, m ->
             val low = m.refillThreshold > 0 && m.stock <= m.refillThreshold
+            val cardContent: @Composable () -> Unit = {
             Card(
-                { onEdit(m) }, Modifier.fillMaxWidth().entrance(i),
+                { onEdit(m) }, Modifier.fillMaxWidth(),
                 colors = if (low) CardDefaults.cardColors(MaterialTheme.colorScheme.errorContainer) else CardDefaults.cardColors(),
             ) {
                 Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -491,6 +523,37 @@ internal fun Medicines(app: AppEnv, onEdit: (Medicine) -> Unit) {
                     }
                     IconButton({ deleting = m }) { Icon(Icons.Rounded.Delete, "Delete") }
                 }
+            }
+            }
+            Box(Modifier.entrance(i)) {
+                if (app.theme.swipeActions) {
+                    // Swipe right to edit, left to delete (asks first). The card always snaps back.
+                    val swipe = rememberSwipeToDismissBoxState(confirmValueChange = { v ->
+                        when (v) {
+                            SwipeToDismissBoxValue.StartToEnd -> { onEdit(m); false }
+                            SwipeToDismissBoxValue.EndToStart -> { deleting = m; false }
+                            else -> false
+                        }
+                    })
+                    SwipeToDismissBox(
+                        swipe,
+                        backgroundContent = {
+                            val edit = swipe.dismissDirection == SwipeToDismissBoxValue.StartToEnd
+                            val del = swipe.dismissDirection == SwipeToDismissBoxValue.EndToStart
+                            Box(
+                                Modifier.fillMaxSize().clip(MaterialTheme.shapes.medium)
+                                    .background(if (edit) MaterialTheme.colorScheme.secondaryContainer else if (del) MaterialTheme.colorScheme.errorContainer else Color.Transparent).padding(horizontal = 24.dp),
+                                contentAlignment = if (edit) Alignment.CenterStart else Alignment.CenterEnd,
+                            ) {
+                                if (edit) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Icon(Icons.Rounded.Edit, null, tint = MaterialTheme.colorScheme.onSecondaryContainer); Text("Edit", color = MaterialTheme.colorScheme.onSecondaryContainer, style = MaterialTheme.typography.titleMedium)
+                                } else if (del) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text("Delete", color = MaterialTheme.colorScheme.onErrorContainer, style = MaterialTheme.typography.titleMedium); Icon(Icons.Rounded.Delete, null, tint = MaterialTheme.colorScheme.onErrorContainer)
+                                }
+                            }
+                        },
+                    ) { cardContent() }
+                } else cardContent()
             }
         }
     }

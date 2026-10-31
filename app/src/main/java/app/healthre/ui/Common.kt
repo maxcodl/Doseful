@@ -216,5 +216,10 @@ fun AppearanceSection(app: AppEnv) {
         )
         Tweak("Corner roundness", s.uiRadius, 0f..150f, " %") { s.updateUiRadius(it) }
         Tweak("Animation duration", s.animScale, 0f..1.5f, " ×", 2) { s.updateAnimScale(it) }
+        ListItem(
+            headlineContent = { Text("Swipe actions on cards") },
+            trailingContent = { Switch(s.swipeActions, { s.updateSwipeActions(it) }) },
+            colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
+        )
     }
 }
