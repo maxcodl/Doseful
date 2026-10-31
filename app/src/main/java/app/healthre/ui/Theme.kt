@@ -62,6 +62,7 @@ fun HealthReTheme(app: AppEnv, content: @Composable () -> Unit) {
     DisposableEffect(dark) {
         val style = SystemBarStyle.auto(TRANSPARENT, TRANSPARENT) { dark }
         act.enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+        if (Build.VERSION.SDK_INT >= 29) act.window.isNavigationBarContrastEnforced = false
         onDispose {}
     }
 

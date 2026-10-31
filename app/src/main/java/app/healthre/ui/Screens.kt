@@ -24,6 +24,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.Color
@@ -92,11 +94,22 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
     var tab by remember { mutableIntStateOf(0) }
     var editing by remember { mutableStateOf<Medicine?>(null) }
     var adding by remember { mutableStateOf(false) }
+    // Predictive back: from any other tab the gesture previews a shrinking page and returns to Today.
+    var backProgress by remember { mutableFloatStateOf(0f) }
+    PredictiveBackHandler(enabled = tab != 0) { progress ->
+        try {
+            progress.collect { backProgress = it.progress }
+            tab = 0
+            backProgress = 0f
+        } catch (e: kotlin.coroutines.cancellation.CancellationException) {
+            backProgress = 0f
+        }
+    }
     Scaffold(
         bottomBar = {
             val navItems = listOf("Today" to Icons.Rounded.Today, "Medicines" to ImageVector.vectorResource(R.drawable.ic_pill), "History" to Icons.Rounded.Insights, "Profile" to Icons.Rounded.Person)
             if (app.theme.floatingNav) FloatingNav(navItems, tab) { tab = it }
-            else NavigationBar {
+            else NavigationBar(containerColor = MaterialTheme.colorScheme.background, tonalElevation = 0.dp) {
                 navItems.forEachIndexed { i, (l, ic) -> NavigationBarItem(tab == i, { tab = i }, { Icon(ic, null) }, label = { Text(l) }) }
             }
         },
@@ -106,7 +119,10 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
     ) { pad ->
         Column(Modifier.padding(pad).fillMaxSize()) {
             header()
-            Box(Modifier.weight(1f)) {
+            Box(Modifier.weight(1f).graphicsLayer {
+                val scale = 1f - 0.08f * backProgress
+                scaleX = scale; scaleY = scale; alpha = 1f - 0.3f * backProgress
+            }) {
                 when (tab) {
                     0 -> Today(app)
                     1 -> Medicines(app) { editing = it }
