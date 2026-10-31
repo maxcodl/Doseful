@@ -186,6 +186,12 @@ class ThemeSettings(ctx: Context) {
 
     fun updateReminderAlarm(b: Boolean) { sp.edit().putBoolean("reminder_alarm", b).apply(); reminderAlarm = b }
 
+    /** Multiplies animation durations. 1 = normal, higher = slower, 0 = instant. */
+    var animScale by mutableStateOf(sp.getFloat("anim_scale", 1.5f))
+        private set
+
+    fun updateAnimScale(v: Float) { sp.edit().putFloat("anim_scale", v).apply(); animScale = v }
+
     /** Scales the corner radius of every card, panel, field and dialog. 100 = Material default, 0 = square. */
     var uiRadius by mutableStateOf(sp.getFloat("ui_radius", 100f))
         private set

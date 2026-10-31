@@ -99,9 +99,10 @@ fun AppField(
 @Composable
 fun SectionCard(title: String, icon: ImageVector? = null, collapsible: Boolean = false, startOpen: Boolean = !collapsible, content: @Composable ColumnScope.() -> Unit) {
     val c = MaterialTheme.colorScheme
+    val animScale = LocalAnimScale.current
     var open by androidx.compose.runtime.saveable.rememberSaveable(title) { mutableStateOf(startOpen) }
-    val rotation by androidx.compose.animation.core.animateFloatAsState(if (open) 180f else 0f, label = "chevron")
-    Surface(Modifier.fillMaxWidth(), shape = corner(28), color = c.surfaceContainerLow) {
+    val rotation by androidx.compose.animation.core.animateFloatAsState(if (open) 180f else 0f, tw(450, animScale), label = "chevron")
+    Surface(Modifier.fillMaxWidth().entrance(0), shape = corner(28), color = c.surfaceContainerLow) {
         Column(Modifier.padding(20.dp)) {
             Row(
                 Modifier.fillMaxWidth().then(
@@ -116,8 +117,8 @@ fun SectionCard(title: String, icon: ImageVector? = null, collapsible: Boolean =
                 if (collapsible) Icon(Icons.Rounded.ExpandMore, if (open) "Collapse" else "Expand", Modifier.rotate(rotation))
             }
             androidx.compose.animation.AnimatedVisibility(
-                open, enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
-                exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut(),
+                open, enter = androidx.compose.animation.expandVertically(tw(500, animScale)) + androidx.compose.animation.fadeIn(tw(450, animScale, 100)),
+                exit = androidx.compose.animation.shrinkVertically(tw(450, animScale)) + androidx.compose.animation.fadeOut(tw(250, animScale)),
             ) {
                 Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { content() }
             }
@@ -214,5 +215,6 @@ fun AppearanceSection(app: AppEnv) {
             colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
         )
         Tweak("Corner roundness", s.uiRadius, 0f..150f, " %") { s.updateUiRadius(it) }
+        Tweak("Animation duration", s.animScale, 0f..3f, " ×", 1) { s.updateAnimScale(it) }
     }
 }

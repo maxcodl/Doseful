@@ -42,12 +42,13 @@ private const val PAGES = 5
 @Composable
 fun Onboarding(app: AppEnv) {
     val pager = rememberPagerState { PAGES }
+    val animScale = LocalAnimScale.current
     val scope = rememberCoroutineScope()
     val form = remember { ProfileForm(app.profile.value) }
     val page = pager.currentPage
     val canNext = page != 3 || form.name.isNotBlank()
     var demo by remember { mutableStateOf(false) }
-    BackHandler(enabled = page > 0 && !demo) { scope.launch { pager.animateScrollToPage(page - 1) } }
+    BackHandler(enabled = page > 0 && !demo) { scope.launch { pager.animateScrollToPage(page - 1, animationSpec = tw(650, animScale)) } }
     if (demo) {
         DemoMode(app) { demo = false; scope.launch { pager.scrollToPage(1) } }
         return
@@ -59,7 +60,7 @@ fun Onboarding(app: AppEnv) {
                 Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 24.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton({ scope.launch { pager.animateScrollToPage(page - 1) } }, enabled = page > 0) { Text("Back") }
+                TextButton({ scope.launch { pager.animateScrollToPage(page - 1, animationSpec = tw(650, animScale)) } }, enabled = page > 0) { Text("Back") }
                 Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                     repeat(PAGES) { i ->
                         val w by animateDpAsState(if (i == page) 28.dp else 10.dp, MaterialTheme.motionScheme.defaultSpatialSpec(), label = "dot")
@@ -70,7 +71,7 @@ fun Onboarding(app: AppEnv) {
                     }
                 }
                 if (page < PAGES - 1) {
-                    Button({ scope.launch { pager.animateScrollToPage(page + 1) } }, enabled = canNext, shapes = ButtonDefaults.shapes()) {
+                    Button({ scope.launch { pager.animateScrollToPage(page + 1, animationSpec = tw(650, animScale)) } }, enabled = canNext, shapes = ButtonDefaults.shapes()) {
                         Text("Next"); Spacer(Modifier.width(6.dp)); Icon(Icons.Rounded.ArrowForward, null, Modifier.size(18.dp))
                     }
                 } else {

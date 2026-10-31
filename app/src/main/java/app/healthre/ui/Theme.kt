@@ -83,7 +83,7 @@ fun HealthReTheme(app: AppEnv, content: @Composable () -> Unit) {
         large = androidx.compose.foundation.shape.RoundedCornerShape((16 * k).dp),
         extraLarge = androidx.compose.foundation.shape.RoundedCornerShape((28 * k).dp),
     )
-    androidx.compose.runtime.CompositionLocalProvider(LocalCornerScale provides k) {
+    androidx.compose.runtime.CompositionLocalProvider(LocalCornerScale provides k, LocalAnimScale provides store.animScale) {
         MaterialExpressiveTheme(
             colorScheme = scheme,
             motionScheme = MotionScheme.expressive(),

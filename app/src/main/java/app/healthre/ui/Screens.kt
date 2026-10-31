@@ -24,6 +24,18 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.border
@@ -87,13 +99,16 @@ private fun NavItem(
     shape: androidx.compose.ui.graphics.Shape, modifier: Modifier = Modifier, onClick: () -> Unit,
 ) {
     val c = MaterialTheme.colorScheme
-    val fg = when { !selected -> c.onSurface; selection == 0 -> c.onPrimaryContainer; else -> c.primary }
-    val bg = when {
+    val fgTarget = when { !selected -> c.onSurface; selection == 0 -> c.onPrimaryContainer; else -> c.primary }
+    val bgTarget = when {
         !selected -> Color.Transparent
         selection == 0 -> c.primaryContainer.copy(alpha = 0.9f)
         selection == 2 -> c.onSurface.copy(alpha = 0.16f)
         else -> Color.Transparent
     }
+    val animScale = LocalAnimScale.current
+    val fg by animateColorAsState(fgTarget, tw(450, animScale), label = "fg")
+    val bg by animateColorAsState(bgTarget, tw(450, animScale), label = "bg")
     val outline = if (selected && selection == 1) Modifier.border(1.5.dp, c.primary, shape) else Modifier
     val dot = if (selected && selection == 3) Modifier.drawBehind {
         drawCircle(c.primary, 2.5.dp.toPx(), Offset(size.width / 2f, size.height - 3.dp.toPx()))
@@ -106,7 +121,7 @@ private fun NavItem(
             Text(label, style = MaterialTheme.typography.labelSmall, color = fg, maxLines = 1)
         }
         else -> Row(
-            base.padding(horizontal = if (selected) 20.dp else 16.dp, vertical = 12.dp).animateContentSize(),
+            base.padding(horizontal = if (selected) 20.dp else 16.dp, vertical = 12.dp).animateContentSize(tw(450, animScale)),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Icon(icon, label, tint = fg)
@@ -204,15 +219,34 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
                         val scale = 1f - 0.08f * backProgress
                         scaleX = scale; scaleY = scale; alpha = 1f - 0.3f * backProgress
                     }) {
-                        when (tab) {
-                            0 -> Today(app)
-                            1 -> Medicines(app) { editing = it }
-                            2 -> History(app)
-                            else -> when (page) {
-                                1 -> SettingsScreen(app) { page = 0 }
-                                2 -> AppointmentsScreen(app) { page = 0 }
-                                3 -> HealthLogScreen(app) { page = 0 }
-                                else -> ProfileScreen(app) { page = it }
+                        val animScale = LocalAnimScale.current
+                        AnimatedContent(
+                            targetState = tab,
+                            transitionSpec = {
+                                val dir = if (targetState > initialState) 1 else -1
+                                (fadeIn(tw(550, animScale, 150)) + slideInHorizontally(tw(650, animScale)) { dir * it / 8 }) togetherWith
+                                    (fadeOut(tw(300, animScale)) + slideOutHorizontally(tw(500, animScale)) { -dir * it / 8 })
+                            },
+                            label = "tab",
+                        ) { t ->
+                            when (t) {
+                                0 -> Today(app)
+                                1 -> Medicines(app) { editing = it }
+                                2 -> History(app)
+                                else -> AnimatedContent(
+                                    targetState = page,
+                                    transitionSpec = {
+                                        (fadeIn(tw(500, animScale, 100)) + slideInVertically(tw(600, animScale)) { it / 14 }) togetherWith fadeOut(tw(250, animScale))
+                                    },
+                                    label = "page",
+                                ) { pg ->
+                                    when (pg) {
+                                        1 -> SettingsScreen(app) { page = 0 }
+                                        2 -> AppointmentsScreen(app) { page = 0 }
+                                        3 -> HealthLogScreen(app) { page = 0 }
+                                        else -> ProfileScreen(app) { page = it }
+                                    }
+                                }
                             }
                         }
                     }
@@ -282,10 +316,13 @@ internal fun Today(app: AppEnv) {
     val next = pending.firstOrNull { it.schedule.minuteOfDay >= nowMin } ?: pending.firstOrNull()
     val name = app.profile.value.name.substringBefore(' ').ifBlank { "there" }
     val c = MaterialTheme.colorScheme
+    val animScale = LocalAnimScale.current
+    val shownDone by animateIntAsState(done, tw(900, animScale), label = "done")
+    val prog by animateFloatAsState(if (list.isEmpty()) 0f else done / list.size.toFloat(), tw(1000, animScale, easing = EaseOutCubic), label = "progress")
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = LocalListBottom.current), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item {
-            Row(Modifier.padding(top = 28.dp, start = 4.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.entrance(0).padding(top = 28.dp, start = 4.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(greeting, style = MaterialTheme.typography.titleLarge, color = c.onSurfaceVariant)
                     Text(name, style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Black), maxLines = 1)
@@ -295,16 +332,16 @@ internal fun Today(app: AppEnv) {
             Spacer(Modifier.height(12.dp))
         }
         item {
-            Surface(Modifier.fillMaxWidth(), shape = corner(32), color = c.primaryContainer) {
+            Surface(Modifier.fillMaxWidth().entrance(1), shape = corner(32), color = c.primaryContainer) {
                 Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("Doses today", style = MaterialTheme.typography.titleLarge, color = c.onPrimaryContainer)
                     Text(
-                        if (list.isEmpty()) "None" else "$done of ${list.size}",
+                        if (list.isEmpty()) "None" else "$shownDone of ${list.size}",
                         style = MaterialTheme.typography.displayLarge.copy(fontWeight = FontWeight.Black), color = c.onPrimaryContainer,
                     )
                     Spacer(Modifier.height(4.dp))
                     LinearWavyProgressIndicator(
-                        progress = { if (list.isEmpty()) 0f else done / list.size.toFloat() }, modifier = Modifier.fillMaxWidth(),
+                        progress = { prog }, modifier = Modifier.fillMaxWidth(),
                         color = c.primary, trackColor = c.onPrimaryContainer.copy(alpha = 0.18f),
                     )
                     Text(
@@ -320,7 +357,7 @@ internal fun Today(app: AppEnv) {
         }
         item { Text("Overview", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = 4.dp, top = 8.dp)) }
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.entrance(2), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     StatTile("Next dose", next?.let { fmt(it.schedule.minuteOfDay) } ?: "--", Icons.Rounded.Alarm, MaterialShapes.Cookie6Sided.toShape(), c.primaryContainer, c.onPrimaryContainer, Modifier.weight(1f).fillMaxHeight(), next?.medicine?.name ?: "Nothing pending")
                     StatTile("Medicines", "${meds.size}", ImageVector.vectorResource(R.drawable.ic_pill), MaterialShapes.Clover4Leaf.toShape(), c.secondaryContainer, c.onSecondaryContainer, Modifier.weight(1f).fillMaxHeight(), "in your list")
@@ -332,7 +369,7 @@ internal fun Today(app: AppEnv) {
             }
         }
         if (list.isNotEmpty()) item { Text("Today's schedule", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = 4.dp, top = 8.dp)) }
-        items(list, key = { it.schedule.id }) { sm ->
+        itemsIndexed(list, key = { _, it -> it.schedule.id }) { i, sm ->
             val log = logs[sm.schedule.id]
             val overdue = log == null && sm.schedule.minuteOfDay < nowMin
             val shapes = listOf(MaterialShapes.Cookie6Sided, MaterialShapes.Clover4Leaf, MaterialShapes.Flower, MaterialShapes.Pentagon, MaterialShapes.Cookie9Sided)
@@ -342,7 +379,7 @@ internal fun Today(app: AppEnv) {
                 overdue -> Triple(Icons.Rounded.Alarm, c.errorContainer, c.onErrorContainer)
                 else -> Triple(ImageVector.vectorResource(R.drawable.ic_pill), c.secondaryContainer, c.onSecondaryContainer)
             }
-            ElevatedCard(Modifier.fillMaxWidth()) {
+            ElevatedCard(Modifier.fillMaxWidth().entrance(3 + i)) {
                 Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(52.dp).clip(shapes[(sm.schedule.id % shapes.size).toInt()].toShape()).background(bg), contentAlignment = Alignment.Center) {
                         Icon(statusIcon, null, tint = fg)
@@ -378,10 +415,10 @@ internal fun Medicines(app: AppEnv, onEdit: (Medicine) -> Unit) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = LocalListBottom.current), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Text("Medicines", style = MaterialTheme.typography.displaySmall) }
         if (meds.isEmpty()) item { Text("No medicines yet.") }
-        items(meds, key = { it.id }) { m ->
+        itemsIndexed(meds, key = { _, it -> it.id }) { i, m ->
             val low = m.refillThreshold > 0 && m.stock <= m.refillThreshold
             Card(
-                { onEdit(m) }, Modifier.fillMaxWidth(),
+                { onEdit(m) }, Modifier.fillMaxWidth().entrance(i),
                 colors = if (low) CardDefaults.cardColors(MaterialTheme.colorScheme.errorContainer) else CardDefaults.cardColors(),
             ) {
                 Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -549,7 +586,7 @@ internal fun History(app: AppEnv) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = LocalListBottom.current), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item { Text("History", style = MaterialTheme.typography.displaySmall) }
         item {
-            Surface(Modifier.fillMaxWidth(), shape = cardShape, color = card) {
+            Surface(Modifier.fillMaxWidth().entrance(1), shape = cardShape, color = card) {
                 Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                     Box(contentAlignment = Alignment.Center) {
                         CircularWavyProgressIndicator(progress = { if (total == 0) 0f else taken / total.toFloat() }, modifier = Modifier.size(104.dp))
@@ -566,7 +603,7 @@ internal fun History(app: AppEnv) {
             }
         }
         item {
-            Surface(Modifier.fillMaxWidth(), shape = cardShape, color = card) {
+            Surface(Modifier.fillMaxWidth().entrance(2), shape = cardShape, color = card) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Day by day", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                     Row(Modifier.fillMaxWidth().height(110.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -589,7 +626,7 @@ internal fun History(app: AppEnv) {
             }
         }
         item {
-            Surface(Modifier.fillMaxWidth(), shape = cardShape, color = card) {
+            Surface(Modifier.fillMaxWidth().entrance(3), shape = cardShape, color = card) {
                 Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
                     rows.forEach { (d, t, n) ->
                         Row(Modifier.fillMaxWidth().padding(vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
