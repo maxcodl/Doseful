@@ -94,6 +94,10 @@ keyPassword=...
 
 GitHub Actions builds every push and pull request. Pushing a tag such as `v0.1.0` builds the signed release APK and publishes it as a GitHub Release. See [`.github/workflows/build.yml`](.github/workflows/build.yml) for the secrets it needs.
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
+
 ## Built with
 
 Kotlin, Jetpack Compose, Material 3 Expressive, Room and AlarmManager.
