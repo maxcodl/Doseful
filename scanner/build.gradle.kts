@@ -31,8 +31,8 @@ android {
     buildTypes {
         release {
             signingConfig = if (keyProps.exists()) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // ML Kit is native code and barely shrinks; R8 only caused a crash in the camera callback.
+            isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
         }
     }
