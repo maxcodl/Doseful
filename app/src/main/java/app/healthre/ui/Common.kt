@@ -21,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
@@ -92,20 +94,33 @@ fun AppField(
     )
 }
 
-/** Titled, rounded group with a coloured shape icon in its header. */
+/** Titled, rounded group with a coloured shape icon. With [collapsible] the header toggles the content open and closed. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun SectionCard(title: String, icon: ImageVector? = null, content: @Composable ColumnScope.() -> Unit) {
+fun SectionCard(title: String, icon: ImageVector? = null, collapsible: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
     val c = MaterialTheme.colorScheme
+    var open by androidx.compose.runtime.saveable.rememberSaveable(title) { mutableStateOf(!collapsible) }
+    val rotation by androidx.compose.animation.core.animateFloatAsState(if (open) 180f else 0f, label = "chevron")
     Surface(Modifier.fillMaxWidth(), shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp), color = c.surfaceContainerLow) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.padding(20.dp)) {
+            Row(
+                Modifier.fillMaxWidth().then(
+                    if (collapsible) Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp)).clickable { open = !open } else Modifier,
+                ),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 if (icon != null) Box(Modifier.size(40.dp).clip(MaterialShapes.Cookie6Sided.toShape()).background(c.primaryContainer), contentAlignment = Alignment.Center) {
                     Icon(icon, null, Modifier.size(22.dp), tint = c.onPrimaryContainer)
                 }
-                Text(title, style = MaterialTheme.typography.titleLarge)
+                Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+                if (collapsible) Icon(Icons.Rounded.ExpandMore, if (open) "Collapse" else "Expand", Modifier.rotate(rotation))
             }
-            content()
+            androidx.compose.animation.AnimatedVisibility(
+                open, enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
+                exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut(),
+            ) {
+                Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { content() }
+            }
         }
     }
 }

@@ -85,16 +85,16 @@ fun ProfileScreen(app: AppEnv) {
             }
         }
 
-        SectionCard("Details", Icons.Rounded.Person) {
+        SectionCard("Details", Icons.Rounded.Person, collapsible = true) {
             ProfileFields(form)
             Button({ app.profile.save(form.build()); toast(ctx, "Saved") }, modifier = Modifier.fillMaxWidth(), enabled = form.name.isNotBlank(), shapes = ButtonDefaults.shapes()) {
                 Text("Save")
             }
         }
 
-        SectionCard("Appearance", Icons.Rounded.Palette) { AppearanceSection(app) }
+        SectionCard("Appearance", Icons.Rounded.Palette, collapsible = true) { AppearanceSection(app) }
 
-        SectionCard("Reminders", Icons.Rounded.Notifications) {
+        SectionCard("Reminders", Icons.Rounded.Notifications, collapsible = true) {
             Choice(listOf("Alarm" to true, "Notification" to false), app.theme.reminderAlarm, { app.theme.updateReminderAlarm(it) })
             FilledTonalButton({ Alarms.notifyTest(ctx, app.theme.reminderAlarm) }, shapes = ButtonDefaults.shapes()) { Text("Send test reminder") }
             if (!Alarms.canExact(ctx)) SettingRow("Exact alarms are off", "Reminders may be late") {
@@ -107,14 +107,14 @@ fun ProfileScreen(app: AppEnv) {
             }
         }
 
-        SectionCard("Backup", Icons.Rounded.Backup) {
+        SectionCard("Backup", Icons.Rounded.Backup, collapsible = true) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilledTonalButton({ export.launch("doseful-backup-${LocalDate.now()}.json") }, shapes = ButtonDefaults.shapes()) { Text("Export") }
                 OutlinedButton({ confirmImport = true }, shapes = ButtonDefaults.shapes()) { Text("Restore") }
             }
         }
 
-        SectionCard("About", Icons.Rounded.Info) {
+        SectionCard("About", Icons.Rounded.Info, collapsible = true) {
             val version = remember { runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: "?" }
             Text("Doseful $version", style = MaterialTheme.typography.titleMedium)
             SettingRow("Check for updates", trailing = Icons.Rounded.OpenInNew) { open(RELEASES_URL) }
@@ -126,15 +126,11 @@ fun ProfileScreen(app: AppEnv) {
         Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             Text("Made with", style = MaterialTheme.typography.bodyLarge, color = c.onSurfaceVariant)
             Spacer(Modifier.width(8.dp))
-            Box(Modifier.size(32.dp).clip(CircleShape).background(c.primaryContainer), contentAlignment = Alignment.Center) {
-                Icon(Icons.Rounded.Favorite, "love", Modifier.size(18.dp), tint = c.primary)
-            }
+            Icon(Icons.Rounded.Favorite, "love", Modifier.size(22.dp), tint = c.primary)
             Spacer(Modifier.width(8.dp))
             Text("and", style = MaterialTheme.typography.bodyLarge, color = c.onSurfaceVariant)
             Spacer(Modifier.width(8.dp))
-            Box(Modifier.size(32.dp).clip(CircleShape).background(c.tertiaryContainer), contentAlignment = Alignment.Center) {
-                Icon(Icons.Rounded.Coffee, "coffee", Modifier.size(18.dp), tint = c.tertiary)
-            }
+            Icon(Icons.Rounded.Coffee, "coffee", Modifier.size(22.dp), tint = c.tertiary)
             Spacer(Modifier.width(8.dp))
             Text("by Max", style = MaterialTheme.typography.bodyLarge, color = c.onSurfaceVariant)
         }
