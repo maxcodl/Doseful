@@ -10,7 +10,7 @@ import app.healthre.AppEnv
 import app.healthre.data.GlassStyle
 
 @Composable
-private fun Tweak(label: String, value: Float, range: ClosedFloatingPointRange<Float>, unit: String = "", decimals: Int = 0, onChange: (Float) -> Unit) {
+internal fun Tweak(label: String, value: Float, range: ClosedFloatingPointRange<Float>, unit: String = "", decimals: Int = 0, onChange: (Float) -> Unit) {
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
@@ -55,7 +55,8 @@ fun NavBarEditor(app: AppEnv) {
         },
         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
-    Tweak("Edge radius", g.radius, 0f..100f, " %") { set(g.copy(radius = it)) }
+    Tweak("Bar radius", g.radius, 0f..100f, " %") { set(g.copy(radius = it)) }
+    Tweak("Selection radius", g.selRadius, 0f..100f, " %") { set(g.copy(selRadius = it)) }
 
     Group("Selection look")
     Choice(listOf("Fill" to 0, "Ring" to 1, "Soft" to 2, "Dot" to 3, "Text" to 4), g.selection, { set(g.copy(selection = it)) })

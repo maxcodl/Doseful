@@ -86,7 +86,7 @@ fun AppField(
     val none = androidx.compose.ui.graphics.Color.Transparent
     TextField(
         value, onValueChange, modifier, label = label, singleLine = singleLine, keyboardOptions = keyboardOptions,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+        shape = corner(20),
         colors = TextFieldDefaults.colors(
             focusedIndicatorColor = none, unfocusedIndicatorColor = none, disabledIndicatorColor = none, errorIndicatorColor = none,
             focusedContainerColor = c.surfaceContainerHighest, unfocusedContainerColor = c.surfaceContainerHighest,
@@ -101,11 +101,11 @@ fun SectionCard(title: String, icon: ImageVector? = null, collapsible: Boolean =
     val c = MaterialTheme.colorScheme
     var open by androidx.compose.runtime.saveable.rememberSaveable(title) { mutableStateOf(startOpen) }
     val rotation by androidx.compose.animation.core.animateFloatAsState(if (open) 180f else 0f, label = "chevron")
-    Surface(Modifier.fillMaxWidth(), shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp), color = c.surfaceContainerLow) {
+    Surface(Modifier.fillMaxWidth(), shape = corner(28), color = c.surfaceContainerLow) {
         Column(Modifier.padding(20.dp)) {
             Row(
                 Modifier.fillMaxWidth().then(
-                    if (collapsible) Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp)).clickable { open = !open } else Modifier,
+                    if (collapsible) Modifier.clip(corner(16)).clickable { open = !open } else Modifier,
                 ),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -213,5 +213,6 @@ fun AppearanceSection(app: AppEnv) {
             trailingContent = { Switch(s.amoled, { s.updateAmoled(it) }) },
             colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
         )
+        Tweak("Corner roundness", s.uiRadius, 0f..150f, " %") { s.updateUiRadius(it) }
     }
 }

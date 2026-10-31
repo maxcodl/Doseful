@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -44,6 +45,14 @@ private fun ColorScheme.amoled() = copy(
     surfaceContainerHighest = Color(0xFF2C2C2C), surfaceBright = Color(0xFF343434),
 )
 
+/** 1.0 = Material default corner sizes. Changed by the "Corner roundness" setting. */
+val LocalCornerScale = androidx.compose.runtime.compositionLocalOf { 1f }
+
+/** A rounded shape whose size follows the app-wide corner roundness setting. Use instead of a fixed RoundedCornerShape. */
+@Composable
+@androidx.compose.runtime.ReadOnlyComposable
+fun corner(dp: Int) = androidx.compose.foundation.shape.RoundedCornerShape((dp * LocalCornerScale.current).dp)
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun HealthReTheme(app: AppEnv, content: @Composable () -> Unit) {
@@ -66,10 +75,21 @@ fun HealthReTheme(app: AppEnv, content: @Composable () -> Unit) {
         onDispose {}
     }
 
-    MaterialExpressiveTheme(
-        colorScheme = scheme,
-        motionScheme = MotionScheme.expressive(),
-        typography = Typography().withFont(Nunito),
-        content = content,
+    val k = store.uiRadius / 100f
+    val shapes = Shapes(
+        extraSmall = androidx.compose.foundation.shape.RoundedCornerShape((4 * k).dp),
+        small = androidx.compose.foundation.shape.RoundedCornerShape((8 * k).dp),
+        medium = androidx.compose.foundation.shape.RoundedCornerShape((12 * k).dp),
+        large = androidx.compose.foundation.shape.RoundedCornerShape((16 * k).dp),
+        extraLarge = androidx.compose.foundation.shape.RoundedCornerShape((28 * k).dp),
     )
+    androidx.compose.runtime.CompositionLocalProvider(LocalCornerScale provides k) {
+        MaterialExpressiveTheme(
+            colorScheme = scheme,
+            motionScheme = MotionScheme.expressive(),
+            typography = Typography().withFont(Nunito),
+            shapes = shapes,
+            content = content,
+        )
+    }
 }

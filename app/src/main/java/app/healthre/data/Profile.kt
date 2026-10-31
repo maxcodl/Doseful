@@ -121,6 +121,8 @@ data class GlassStyle(
     val radius: Float = 100f,
     /** Selected item look: 0 = filled, 1 = outlined, 2 = soft glass, 3 = dot, 4 = colour only. */
     val selection: Int = 0,
+    /** Corner roundness of the selected item in percent (0 = square, 100 = fully round), independent of the bar. */
+    val selRadius: Float = 100f,
 )
 
 /** Theme choice. One instance is shared by the real app and the demo, because it is a device preference. */
@@ -139,6 +141,12 @@ class ThemeSettings(ctx: Context) {
 
     fun updateReminderAlarm(b: Boolean) { sp.edit().putBoolean("reminder_alarm", b).apply(); reminderAlarm = b }
 
+    /** Scales the corner radius of every card, panel, field and dialog. 100 = Material default, 0 = square. */
+    var uiRadius by mutableStateOf(sp.getFloat("ui_radius", 100f))
+        private set
+
+    fun updateUiRadius(v: Float) { sp.edit().putFloat("ui_radius", v).apply(); uiRadius = v }
+
     /** False = standard bottom bar, true = floating pill. */
     var floatingNav by mutableStateOf(sp.getBoolean("floating_nav", false))
         private set
@@ -154,7 +162,7 @@ class ThemeSettings(ctx: Context) {
             sp.getFloat("g_tint", d.tint), sp.getFloat("g_edge_w", d.edgeWidth), sp.getFloat("g_edge_a", d.edgeAlpha),
             sp.getInt("g_edge_style", d.edgeStyle), sp.getFloat("g_sh_r", d.shadowRadius), sp.getFloat("g_sh_a", d.shadowAlpha),
             sp.getFloat("g_in_r", d.innerRadius), sp.getFloat("g_in_a", d.innerAlpha),
-            sp.getInt("g_type", d.type), sp.getFloat("g_radius_pct", d.radius), sp.getInt("g_sel", d.selection),
+            sp.getInt("g_type", d.type), sp.getFloat("g_radius_pct", d.radius), sp.getInt("g_sel", d.selection), sp.getFloat("g_sel_radius", d.selRadius),
         )
     }
 
@@ -164,7 +172,7 @@ class ThemeSettings(ctx: Context) {
             .putFloat("g_tint", g.tint).putFloat("g_edge_w", g.edgeWidth).putFloat("g_edge_a", g.edgeAlpha)
             .putInt("g_edge_style", g.edgeStyle).putFloat("g_sh_r", g.shadowRadius).putFloat("g_sh_a", g.shadowAlpha)
             .putFloat("g_in_r", g.innerRadius).putFloat("g_in_a", g.innerAlpha)
-            .putInt("g_type", g.type).putFloat("g_radius_pct", g.radius).putInt("g_sel", g.selection).apply()
+            .putInt("g_type", g.type).putFloat("g_radius_pct", g.radius).putInt("g_sel", g.selection).putFloat("g_sel_radius", g.selRadius).apply()
         glass = g
     }
 

@@ -127,7 +127,7 @@ private fun FloatingNav(items: List<Pair<String, ImageVector>>, selected: Int, b
     // Corners are a percentage of the shape's own size, so they can never exceed fully round (which would break the glass shader).
     val percent = (g.radius / 2f).toInt().coerceIn(0, 50)
     val barShape = RoundedCornerShape(percent)
-    val itemShape = RoundedCornerShape(percent)
+    val itemShape = RoundedCornerShape((g.selRadius / 2f).toInt().coerceIn(0, 50))
     val dock = g.type == 3
     Box(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = if (dock) 12.dp else 24.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
         // The library only recomputes its lens and edge shader when the size changes, so rebuild the bar when the corner radius changes.
@@ -242,7 +242,7 @@ private fun StatTile(
     title: String, value: String, icon: ImageVector, shape: androidx.compose.ui.graphics.Shape,
     container: Color, onContainer: Color, modifier: Modifier = Modifier, note: String? = null,
 ) {
-    Surface(modifier, shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
+    Surface(modifier, shape = corner(28), color = MaterialTheme.colorScheme.surfaceContainerLow) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Box(Modifier.size(48.dp).clip(shape).background(container), contentAlignment = Alignment.Center) {
                 Icon(icon, null, tint = onContainer)
@@ -289,7 +289,7 @@ internal fun Today(app: AppEnv) {
             Spacer(Modifier.height(12.dp))
         }
         item {
-            Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(32.dp), color = c.primaryContainer) {
+            Surface(Modifier.fillMaxWidth(), shape = corner(32), color = c.primaryContainer) {
                 Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("Doses today", style = MaterialTheme.typography.titleLarge, color = c.onPrimaryContainer)
                     Text(
@@ -539,7 +539,7 @@ internal fun History(app: AppEnv) {
     val streak = rows.drop(if (skipToday) 1 else 0).takeWhile { it.third == 0 || it.second == it.third }.count { it.third > 0 }
 
     val card = MaterialTheme.colorScheme.surfaceContainerLow
-    val cardShape = RoundedCornerShape(28.dp)
+    val cardShape = corner(28)
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = LocalListBottom.current), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item { Text("History", style = MaterialTheme.typography.displaySmall) }
         item {
@@ -573,7 +573,7 @@ internal fun History(app: AppEnv) {
                             }
                             Column(Modifier.weight(1f).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
                                 Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
-                                    Box(Modifier.fillMaxWidth().fillMaxHeight(frac).clip(RoundedCornerShape(6.dp)).background(color))
+                                    Box(Modifier.fillMaxWidth().fillMaxHeight(frac).clip(corner(6)).background(color))
                                 }
                                 Text(d.dayOfWeek.name.first().toString(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }

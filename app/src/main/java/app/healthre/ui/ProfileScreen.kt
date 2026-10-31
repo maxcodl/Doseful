@@ -39,7 +39,7 @@ private fun SettingRow(title: String, detail: String? = null, trailing: ImageVec
         headlineContent = { Text(title) },
         supportingContent = detail?.let { { Text(it) } },
         trailingContent = { Icon(trailing, null) },
-        modifier = Modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick),
+        modifier = Modifier.clip(corner(16)).clickable(onClick = onClick),
         colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
     )
 }
@@ -60,7 +60,7 @@ fun ProfileScreen(app: AppEnv, onOpenSettings: () -> Unit) {
             FilledTonalIconButton(onOpenSettings) { Icon(Icons.Rounded.Settings, "Settings") }
         }
 
-        Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(32.dp), color = c.surfaceContainerLow) {
+        Surface(Modifier.fillMaxWidth(), shape = corner(32), color = c.surfaceContainerLow) {
             Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 AvatarPicker(app, 132.dp)
                 Spacer(Modifier.height(8.dp))
