@@ -130,6 +130,8 @@ private fun FloatingNav(items: List<Pair<String, ImageVector>>, selected: Int, b
     val itemShape = RoundedCornerShape(percent)
     val dock = g.type == 3
     Box(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = if (dock) 12.dp else 24.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
+        // The library only recomputes its lens and edge shader when the size changes, so rebuild the bar when the corner radius changes.
+        androidx.compose.runtime.key(percent, g.type) {
         Row(
             Modifier
                 .then(if (dock) Modifier.fillMaxWidth() else Modifier)
@@ -153,6 +155,7 @@ private fun FloatingNav(items: List<Pair<String, ImageVector>>, selected: Int, b
             items.forEachIndexed { i, (label, icon) ->
                 NavItem(label, icon, i == selected, g.type, g.selection, itemShape, if (dock) Modifier.weight(1f) else Modifier) { onSelect(i) }
             }
+        }
         }
     }
 }

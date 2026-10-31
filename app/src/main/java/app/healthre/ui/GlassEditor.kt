@@ -58,11 +58,17 @@ fun NavBarEditor(app: AppEnv) {
     Tweak("Edge radius", g.radius, 0f..100f, " %") { set(g.copy(radius = it)) }
 
     Group("Selection look")
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        listOf("Filled", "Outline", "Soft", "Dot", "Colour").forEachIndexed { i, name ->
-            FilterChip(g.selection == i, { set(g.copy(selection = i)) }, { Text(name) })
-        }
-    }
+    Choice(listOf("Fill" to 0, "Ring" to 1, "Soft" to 2, "Dot" to 3, "Text" to 4), g.selection, { set(g.copy(selection = it)) })
+    Text(
+        when (g.selection) {
+            0 -> "A solid highlight behind the selected item."
+            1 -> "A ring around the selected item."
+            2 -> "A light frosted tint."
+            3 -> "A small dot under the selected item."
+            else -> "Only the icon and name change colour."
+        },
+        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 /** The Liquid Glass material of the floating bar. Changes apply live to the bar at the bottom of the screen. */
