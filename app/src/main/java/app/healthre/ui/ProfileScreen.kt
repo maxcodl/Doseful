@@ -5,11 +5,9 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -34,7 +32,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
-/** One tappable settings line: title, optional detail, and an action label or icon on the right. */
+/** One tappable settings line: title, optional detail, and an icon on the right. */
 @Composable
 private fun SettingRow(title: String, detail: String? = null, trailing: ImageVector = Icons.Rounded.ChevronRight, onClick: () -> Unit) {
     ListItem(
@@ -46,13 +44,48 @@ private fun SettingRow(title: String, detail: String? = null, trailing: ImageVec
     )
 }
 
+/** You: photo and personal details. App settings live on their own page, opened with the gear. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun ProfileScreen(app: AppEnv) {
+fun ProfileScreen(app: AppEnv, onOpenSettings: () -> Unit) {
     val ctx = LocalContext.current
-    val scope = rememberCoroutineScope()
     val p = app.profile.value
     val form = remember { ProfileForm(p) }
+    val c = MaterialTheme.colorScheme
+    val hasPhoto = app.profile.avatarVersion >= 0 && app.profile.avatar() != null
+
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = LocalListBottom.current - 56.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Profile", Modifier.weight(1f), style = MaterialTheme.typography.displaySmall)
+            FilledTonalIconButton(onOpenSettings) { Icon(Icons.Rounded.Settings, "Settings") }
+        }
+
+        Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(32.dp), color = c.surfaceContainerLow) {
+            Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                AvatarPicker(app, 132.dp)
+                Spacer(Modifier.height(8.dp))
+                Text(p.name, style = MaterialTheme.typography.headlineMedium)
+                val facts = listOfNotNull(p.age?.let { "$it yrs" }, p.bmi?.let { "BMI %.1f".format(it) }).joinToString("  ·  ")
+                if (facts.isNotEmpty()) Text(facts, color = c.onSurfaceVariant)
+                if (hasPhoto) TextButton({ app.profile.setAvatar(null) }) { Text("Remove photo") }
+            }
+        }
+
+        SectionCard("Details", Icons.Rounded.Person, collapsible = true, startOpen = true) {
+            ProfileFields(form)
+            Button({ app.profile.save(form.build()); toast(ctx, "Saved") }, modifier = Modifier.fillMaxWidth(), enabled = form.name.isNotBlank(), shapes = ButtonDefaults.shapes()) {
+                Text("Save")
+            }
+        }
+    }
+}
+
+/** App settings, separate from the profile: look, reminders, backup and about. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun SettingsScreen(app: AppEnv, onBack: () -> Unit) {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
     val c = MaterialTheme.colorScheme
     fun open(url: String) = ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
 
@@ -69,27 +102,12 @@ fun ProfileScreen(app: AppEnv) {
         }
     }
     var confirmImport by remember { mutableStateOf(false) }
-    val hasPhoto = app.profile.avatarVersion >= 0 && app.profile.avatar() != null
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = LocalListBottom.current - 56.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text("Profile", style = MaterialTheme.typography.displaySmall)
-
-        Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(32.dp), color = c.surfaceContainerLow) {
-            Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                AvatarPicker(app, 132.dp)
-                Spacer(Modifier.height(8.dp))
-                Text(p.name, style = MaterialTheme.typography.headlineMedium)
-                val facts = listOfNotNull(p.age?.let { "$it yrs" }, p.bmi?.let { "BMI %.1f".format(it) }).joinToString("  ·  ")
-                if (facts.isNotEmpty()) Text(facts, color = c.onSurfaceVariant)
-                if (hasPhoto) TextButton({ app.profile.setAvatar(null) }) { Text("Remove photo") }
-            }
-        }
-
-        SectionCard("Details", Icons.Rounded.Person, collapsible = true) {
-            ProfileFields(form)
-            Button({ app.profile.save(form.build()); toast(ctx, "Saved") }, modifier = Modifier.fillMaxWidth(), enabled = form.name.isNotBlank(), shapes = ButtonDefaults.shapes()) {
-                Text("Save")
-            }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            FilledTonalIconButton(onBack) { Icon(Icons.Rounded.ArrowBack, "Back") }
+            Spacer(Modifier.width(12.dp))
+            Text("Settings", style = MaterialTheme.typography.displaySmall)
         }
 
         SectionCard("Appearance", Icons.Rounded.Palette, collapsible = true) { AppearanceSection(app) }

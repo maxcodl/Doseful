@@ -97,9 +97,9 @@ fun AppField(
 /** Titled, rounded group with a coloured shape icon. With [collapsible] the header toggles the content open and closed. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun SectionCard(title: String, icon: ImageVector? = null, collapsible: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
+fun SectionCard(title: String, icon: ImageVector? = null, collapsible: Boolean = false, startOpen: Boolean = !collapsible, content: @Composable ColumnScope.() -> Unit) {
     val c = MaterialTheme.colorScheme
-    var open by androidx.compose.runtime.saveable.rememberSaveable(title) { mutableStateOf(!collapsible) }
+    var open by androidx.compose.runtime.saveable.rememberSaveable(title) { mutableStateOf(startOpen) }
     val rotation by androidx.compose.animation.core.animateFloatAsState(if (open) 180f else 0f, label = "chevron")
     Surface(Modifier.fillMaxWidth(), shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp), color = c.surfaceContainerLow) {
         Column(Modifier.padding(20.dp)) {

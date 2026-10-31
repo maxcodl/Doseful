@@ -117,8 +117,10 @@ data class GlassStyle(
     val innerAlpha: Float = 0f,
     /** 0 = pill (selected item expands), 1 = icons only, 2 = icons with labels, 3 = full-width dock. */
     val type: Int = 0,
-    /** Corner radius in dp. Anything at or above half the bar height is fully round. */
-    val radius: Float = 48f,
+    /** Corner roundness in percent: 0 = square, 100 = fully round. A percentage can never exceed the bar's own size. */
+    val radius: Float = 100f,
+    /** Selected item look: 0 = filled, 1 = outlined, 2 = soft glass, 3 = dot, 4 = colour only. */
+    val selection: Int = 0,
 )
 
 /** Theme choice. One instance is shared by the real app and the demo, because it is a device preference. */
@@ -152,7 +154,7 @@ class ThemeSettings(ctx: Context) {
             sp.getFloat("g_tint", d.tint), sp.getFloat("g_edge_w", d.edgeWidth), sp.getFloat("g_edge_a", d.edgeAlpha),
             sp.getInt("g_edge_style", d.edgeStyle), sp.getFloat("g_sh_r", d.shadowRadius), sp.getFloat("g_sh_a", d.shadowAlpha),
             sp.getFloat("g_in_r", d.innerRadius), sp.getFloat("g_in_a", d.innerAlpha),
-            sp.getInt("g_type", d.type), sp.getFloat("g_radius", d.radius),
+            sp.getInt("g_type", d.type), sp.getFloat("g_radius_pct", d.radius), sp.getInt("g_sel", d.selection),
         )
     }
 
@@ -162,7 +164,7 @@ class ThemeSettings(ctx: Context) {
             .putFloat("g_tint", g.tint).putFloat("g_edge_w", g.edgeWidth).putFloat("g_edge_a", g.edgeAlpha)
             .putInt("g_edge_style", g.edgeStyle).putFloat("g_sh_r", g.shadowRadius).putFloat("g_sh_a", g.shadowAlpha)
             .putFloat("g_in_r", g.innerRadius).putFloat("g_in_a", g.innerAlpha)
-            .putInt("g_type", g.type).putFloat("g_radius", g.radius).apply()
+            .putInt("g_type", g.type).putFloat("g_radius_pct", g.radius).putInt("g_sel", g.selection).apply()
         glass = g
     }
 

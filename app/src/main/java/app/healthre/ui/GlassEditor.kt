@@ -33,7 +33,7 @@ private fun Toggle(label: String, checked: Boolean, onChange: (Boolean) -> Unit)
 private fun Group(title: String) = Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
 
 /** Controls for the floating Liquid Glass bar. Changes apply live to the bar at the bottom of the screen. */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun GlassEditor(app: AppEnv) {
     val s = app.theme
@@ -56,7 +56,13 @@ fun GlassEditor(app: AppEnv) {
         },
         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
-    Tweak("Edge radius", g.radius, 0f..48f, " dp") { set(g.copy(radius = it)) }
+    Tweak("Edge radius", g.radius, 0f..100f, " %") { set(g.copy(radius = it)) }
+    Text("Selection look", style = MaterialTheme.typography.bodyLarge)
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf("Filled", "Outline", "Soft", "Dot", "Colour").forEachIndexed { i, name ->
+            FilterChip(g.selection == i, { set(g.copy(selection = i)) }, { Text(name) })
+        }
+    }
 
     Group("Glass")
     Tweak("Blur", g.blur, 0f..30f, " dp") { set(g.copy(blur = it)) }

@@ -24,6 +24,9 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.foundation.border
 import com.kyant.backdrop.shadow.Shadow
 import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.highlight.Highlight
@@ -77,13 +80,25 @@ fun Root(app: AppEnv) {
 /** How much room lists leave at the bottom: more when the floating bar and button overlay the content. */
 internal val LocalListBottom = androidx.compose.runtime.compositionLocalOf { 96.dp }
 
-/** One destination in the floating bar. How it looks depends on the bar [type]. */
+/** One destination in the floating bar. Layout follows the bar [type]; the selected look follows [selection]. */
 @Composable
-private fun NavItem(label: String, icon: ImageVector, selected: Boolean, type: Int, shape: androidx.compose.ui.graphics.Shape, modifier: Modifier = Modifier, onClick: () -> Unit) {
+private fun NavItem(
+    label: String, icon: ImageVector, selected: Boolean, type: Int, selection: Int,
+    shape: androidx.compose.ui.graphics.Shape, modifier: Modifier = Modifier, onClick: () -> Unit,
+) {
     val c = MaterialTheme.colorScheme
-    val fg = if (selected) c.onPrimaryContainer else c.onSurface
-    val bg = if (selected) c.primaryContainer.copy(alpha = 0.9f) else Color.Transparent
-    val base = modifier.clip(shape).background(bg).clickable(onClick = onClick)
+    val fg = when { !selected -> c.onSurface; selection == 0 -> c.onPrimaryContainer; else -> c.primary }
+    val bg = when {
+        !selected -> Color.Transparent
+        selection == 0 -> c.primaryContainer.copy(alpha = 0.9f)
+        selection == 2 -> c.onSurface.copy(alpha = 0.16f)
+        else -> Color.Transparent
+    }
+    val outline = if (selected && selection == 1) Modifier.border(1.5.dp, c.primary, shape) else Modifier
+    val dot = if (selected && selection == 3) Modifier.drawBehind {
+        drawCircle(c.primary, 2.5.dp.toPx(), Offset(size.width / 2f, size.height - 3.dp.toPx()))
+    } else Modifier
+    val base = modifier.clip(shape).background(bg).then(outline).then(dot).clickable(onClick = onClick)
     when (type) {
         1 -> Box(base.padding(horizontal = 18.dp, vertical = 12.dp), contentAlignment = Alignment.Center) { Icon(icon, label, tint = fg) }
         2, 3 -> Column(base.padding(horizontal = 14.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -109,8 +124,10 @@ private fun FloatingNav(items: List<Pair<String, ImageVector>>, selected: Int, b
     val c = MaterialTheme.colorScheme
     val tint = c.surfaceContainerHigh.copy(alpha = g.tint)
     val edge = when (g.edgeStyle) { 1 -> Highlight.Ambient; 2 -> Highlight.Plain; else -> Highlight.Default }
-    val barShape = RoundedCornerShape(g.radius.dp)
-    val itemShape = RoundedCornerShape((g.radius - 6f).coerceAtLeast(0f).dp)
+    // Corners are a percentage of the shape's own size, so they can never exceed fully round (which would break the glass shader).
+    val percent = (g.radius / 2f).toInt().coerceIn(0, 50)
+    val barShape = RoundedCornerShape(percent)
+    val itemShape = RoundedCornerShape(percent)
     val dock = g.type == 3
     Box(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = if (dock) 12.dp else 24.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
         Row(
@@ -134,7 +151,7 @@ private fun FloatingNav(items: List<Pair<String, ImageVector>>, selected: Int, b
             verticalAlignment = Alignment.CenterVertically,
         ) {
             items.forEachIndexed { i, (label, icon) ->
-                NavItem(label, icon, i == selected, g.type, itemShape, if (dock) Modifier.weight(1f) else Modifier) { onSelect(i) }
+                NavItem(label, icon, i == selected, g.type, g.selection, itemShape, if (dock) Modifier.weight(1f) else Modifier) { onSelect(i) }
             }
         }
     }
@@ -146,6 +163,7 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
     var tab by remember { mutableIntStateOf(0) }
     var editing by remember { mutableStateOf<Medicine?>(null) }
     var adding by remember { mutableStateOf(false) }
+    var inSettings by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     // Predictive back: from any other tab the gesture previews a shrinking page and returns to Today.
     var backProgress by remember { mutableFloatStateOf(0f) }
     PredictiveBackHandler(enabled = tab != 0) { progress ->
@@ -157,6 +175,8 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
             backProgress = 0f
         }
     }
+    // Back from the Settings page returns to Profile first.
+    androidx.activity.compose.BackHandler(enabled = tab == 3 && inSettings) { inSettings = false }
     val floating = app.theme.floatingNav
     val backdrop = com.kyant.backdrop.backdrops.rememberLayerBackdrop()
     val navItems = listOf("Today" to Icons.Rounded.Today, "Medicines" to ImageVector.vectorResource(R.drawable.ic_pill), "History" to Icons.Rounded.Insights, "Profile" to Icons.Rounded.Person)
@@ -184,7 +204,7 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
                             0 -> Today(app)
                             1 -> Medicines(app) { editing = it }
                             2 -> History(app)
-                            else -> ProfileScreen(app)
+                            else -> if (inSettings) SettingsScreen(app) { inSettings = false } else ProfileScreen(app) { inSettings = true }
                         }
                     }
                 }
