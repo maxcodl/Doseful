@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
@@ -94,47 +95,116 @@ private fun MedicalForm(m: MedicalId, onSave: (MedicalId) -> Unit, onCancel: () 
     }
 }
 
+/** One labelled line on the ID card, with an icon. Skipped when empty. */
 @Composable
-private fun InfoLine(label: String, value: String) {
+private fun CardLine(icon: ImageVector, label: String, value: String, big: Boolean) {
     if (value.isBlank()) return
-    ListItem(
-        overlineContent = { Text(label) }, headlineContent = { Text(value) },
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-    )
+    val fg = MaterialTheme.colorScheme.onPrimaryContainer
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+        Icon(icon, null, Modifier.padding(top = 2.dp), tint = fg)
+        Column {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = fg.copy(alpha = 0.75f))
+            Text(value, style = if (big) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodyLarge, color = fg)
+        }
+    }
 }
 
 @Composable
-private fun CallLine(label: String, name: String, phone: String) {
+private fun CardCall(label: String, name: String, phone: String, big: Boolean) {
     if (name.isBlank() && phone.isBlank()) return
     val ctx = LocalContext.current
-    ListItem(
-        overlineContent = { Text(label) },
-        headlineContent = { Text(name.ifBlank { phone }) },
-        supportingContent = if (name.isNotBlank() && phone.isNotBlank()) ({ Text(phone) }) else null,
-        trailingContent = if (phone.isNotBlank()) ({
-            FilledTonalIconButton({ ctx.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))) }) { Icon(Icons.Rounded.Call, "Call $label") }
-        }) else null,
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-    )
+    val c = MaterialTheme.colorScheme
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = c.onPrimaryContainer.copy(alpha = 0.75f))
+            Text(name.ifBlank { phone }, style = if (big) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodyLarge, color = c.onPrimaryContainer)
+            if (name.isNotBlank() && phone.isNotBlank()) Text(phone, style = MaterialTheme.typography.bodyMedium, color = c.onPrimaryContainer.copy(alpha = 0.85f))
+        }
+        if (phone.isNotBlank()) FilledIconButton(
+            { ctx.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))) },
+            Modifier.size(if (big) 56.dp else 44.dp),
+        ) { Icon(Icons.Rounded.Call, "Call $label") }
+    }
 }
 
-/** Blood type, allergies, conditions and who to call. Stays on the phone. */
+/** The Medical ID as an ID card: photo, name, blood type badge, allergies, conditions and who to call. [big] is the emergency view. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun MedicalCard(app: AppEnv, m: MedicalId, big: Boolean = false) {
+    val c = MaterialTheme.colorScheme
+    val p = app.profile.value
+    val photo = if (big) 84.dp else 64.dp
+    Surface(Modifier.fillMaxWidth(), shape = corner(28), color = c.primaryContainer) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Rounded.MedicalServices, null, tint = c.onPrimaryContainer)
+                Text("MEDICAL ID", style = MaterialTheme.typography.labelLarge.copy(letterSpacing = androidx.compose.ui.unit.TextUnit(2f, androidx.compose.ui.unit.TextUnitType.Sp)), color = c.onPrimaryContainer)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Avatar(app, photo)
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        p.name.ifBlank { "Your name" },
+                        style = (if (big) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.titleLarge).copy(fontWeight = FontWeight.Black),
+                        color = c.onPrimaryContainer,
+                    )
+                    val facts = listOfNotNull(p.age?.let { "$it yrs" }, p.gender.ifBlank { null }, p.bmi?.let { "BMI %.1f".format(it) }).joinToString("  ·  ")
+                    if (facts.isNotEmpty()) Text(facts, style = MaterialTheme.typography.bodyMedium, color = c.onPrimaryContainer.copy(alpha = 0.85f))
+                }
+                if (m.blood.isNotBlank()) Box(Modifier.size(photo).clip(MaterialShapes.Cookie9Sided.toShape()).background(c.primary), contentAlignment = Alignment.Center) {
+                    Text(m.blood, style = (if (big) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.titleLarge).copy(fontWeight = FontWeight.Black), color = c.onPrimary)
+                }
+            }
+            HorizontalDivider(color = c.onPrimaryContainer.copy(alpha = 0.2f))
+            CardLine(Icons.Rounded.Warning, "Allergies", m.allergies, big)
+            CardLine(Icons.Rounded.HealthAndSafety, "Conditions", m.conditions, big)
+            CardCall("Doctor", m.doctor, m.doctorPhone, big)
+            CardCall("Emergency contact", m.emergencyName, m.emergencyPhone, big)
+        }
+    }
+}
+
+/** Large, high-contrast view of the card, meant to be handed to or read by someone helping you. */
+@Composable
+private fun EmergencyView(app: AppEnv, m: MedicalId, onClose: () -> Unit) {
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onClose,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+    ) {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            Column(
+                Modifier.statusBarsPadding().navigationBarsPadding().padding(16.dp).verticalScroll(androidx.compose.foundation.rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                MedicalCard(app, m, big = true)
+                Button(onClose, Modifier.fillMaxWidth()) { Text("Close") }
+            }
+        }
+    }
+}
+
+/** Your Medical ID card. Stays on the phone. */
 @Composable
 internal fun MedicalIdCard(app: AppEnv) {
     val m = app.profile.medical
     var editing by remember { mutableStateOf(false) }
+    var full by remember { mutableStateOf(false) }
     SectionCard("Medical ID", Icons.Rounded.MedicalServices, collapsible = true, startOpen = true) {
         if (editing) MedicalForm(m, { app.profile.saveMedical(it); editing = false }) { editing = false }
         else {
-            if (m.isEmpty) Text("Add your blood type, allergies and an emergency contact.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            InfoLine("Blood type", m.blood)
-            InfoLine("Allergies", m.allergies)
-            InfoLine("Conditions", m.conditions)
-            CallLine("Doctor", m.doctor, m.doctorPhone)
-            CallLine("Emergency contact", m.emergencyName, m.emergencyPhone)
-            FilledTonalButton({ editing = true }) { Text(if (m.isEmpty) "Add" else "Edit") }
+            if (m.isEmpty) {
+                Text("Add your blood type, allergies and an emergency contact to get your ID card.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                FilledTonalButton({ editing = true }) { Text("Add") }
+            } else {
+                MedicalCard(app, m)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilledTonalButton({ full = true }) { Icon(Icons.Rounded.Fullscreen, null); Spacer(Modifier.width(6.dp)); Text("Full screen") }
+                    OutlinedButton({ editing = true }) { Text("Edit") }
+                }
+            }
         }
     }
+    if (full) EmergencyView(app, m) { full = false }
 }
 
 /** The next appointment, with shortcuts to the full list. */
