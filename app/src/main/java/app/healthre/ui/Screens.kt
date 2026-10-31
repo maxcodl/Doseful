@@ -233,6 +233,27 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
     val pager = androidx.compose.foundation.pager.rememberPagerState(initialPage = 0) { 4 }
     val tab = pager.currentPage
     val position = pager.currentPage + pager.currentPageOffsetFraction
+    // Tapping a tab more than one step away must not scroll through the pages in between. Those jumps dim the page briefly,
+    // switch instantly, and fade back, while the bar's highlight glides across by itself ([navPos]).
+    val pageFade = remember { androidx.compose.animation.core.Animatable(1f) }
+    val navPos = remember { androidx.compose.animation.core.Animatable(0f) }
+    var jumping by remember { mutableStateOf(false) }
+    suspend fun moveTo(target: Int) {
+        if (target == pager.currentPage) return
+        if (kotlin.math.abs(target - pager.currentPage) <= 1) {
+            pager.animateScrollToPage(target, animationSpec = tw(420, animScale))
+            return
+        }
+        jumping = true
+        navPos.snapTo(position)
+        kotlinx.coroutines.coroutineScope {
+            launch { navPos.animateTo(target.toFloat(), tw(420, animScale)) }
+            pageFade.animateTo(0.45f, tw(110, animScale))
+            pager.scrollToPage(target)
+            pageFade.animateTo(1f, tw(220, animScale))
+        }
+        jumping = false
+    }
     var editing by remember { mutableStateOf<Medicine?>(null) }
     var adding by remember { mutableStateOf(false) }
     // Profile tab sub-pages: 0 = profile, 1 = settings, 2 = appointments, 3 = health log.
@@ -242,7 +263,7 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
     PredictiveBackHandler(enabled = tab != 0) { progress ->
         try {
             progress.collect { backProgress = it.progress }
-            pager.animateScrollToPage(0)
+            moveTo(0)
             backProgress = 0f
         } catch (e: kotlin.coroutines.cancellation.CancellationException) {
             backProgress = 0f
@@ -250,7 +271,7 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
     }
     // Back from a sub-page returns to Profile first.
     androidx.activity.compose.BackHandler(enabled = tab == 3 && page != 0) { page = 0 }
-    fun goTo(i: Int) { scope.launch { pager.animateScrollToPage(i, animationSpec = tw(420, animScale)) } }
+    fun goTo(i: Int) { scope.launch { moveTo(i) } }
     val floating = app.theme.floatingNav
     val backdrop = com.kyant.backdrop.backdrops.rememberLayerBackdrop()
     val navItems = listOf("Today" to Icons.Rounded.Today, "Medicines" to ImageVector.vectorResource(R.drawable.ic_pill), "History" to Icons.Rounded.Insights, "Profile" to Icons.Rounded.Person)
@@ -274,7 +295,7 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
                         state = pager,
                         modifier = Modifier.weight(1f).graphicsLayer {
                             val scale = 1f - 0.08f * backProgress
-                            scaleX = scale; scaleY = scale; alpha = 1f - 0.3f * backProgress
+                            scaleX = scale; scaleY = scale; alpha = pageFade.value * (1f - 0.3f * backProgress)
                         },
                         beyondViewportPageCount = 3,
                     ) { i ->
@@ -302,7 +323,7 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
                 }
                 if (floating) Column(Modifier.align(Alignment.BottomCenter), horizontalAlignment = Alignment.End) {
                     if (tab <= 1) FloatingActionButton({ adding = true }, Modifier.padding(end = 24.dp)) { Icon(Icons.Rounded.Add, "Add medicine") }
-                    FloatingNav(navItems, tab, position, backdrop, app.theme.glass) { goTo(it) }
+                    FloatingNav(navItems, tab, if (jumping) navPos.value else position, backdrop, app.theme.glass) { goTo(it) }
                 }
             }
         }
