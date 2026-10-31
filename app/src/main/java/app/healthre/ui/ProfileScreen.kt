@@ -110,8 +110,9 @@ fun SettingsScreen(app: AppEnv, onBack: () -> Unit) {
             Text("Settings", style = MaterialTheme.typography.displaySmall)
         }
 
-        SectionCard("Appearance", Icons.Rounded.Palette, collapsible = true) { AppearanceSection(app) }
-        SectionCard("Glass bar", Icons.Rounded.BlurOn, collapsible = true) { GlassEditor(app) }
+        SectionCard("Theme", Icons.Rounded.Palette, collapsible = true) { AppearanceSection(app) }
+        SectionCard("Navigation bar", Icons.Rounded.ViewDay, collapsible = true) { NavBarEditor(app) }
+        SectionCard("Glass", Icons.Rounded.BlurOn, collapsible = true) { GlassEditor(app) }
 
         SectionCard("Reminders", Icons.Rounded.Notifications, collapsible = true) {
             Choice(listOf("Alarm" to true, "Notification" to false), app.theme.reminderAlarm, { app.theme.updateReminderAlarm(it) })
@@ -138,7 +139,7 @@ fun SettingsScreen(app: AppEnv, onBack: () -> Unit) {
             Text("Doseful $version", style = MaterialTheme.typography.titleMedium)
             SettingRow("Check for updates", trailing = Icons.Rounded.OpenInNew) { open(RELEASES_URL) }
             SettingRow("Source code", "GPL-3.0", Icons.Rounded.OpenInNew) { open(SOURCE_URL) }
-            SettingRow("Telegram", "@$TELEGRAM_USER", Icons.Rounded.OpenInNew) { open(TELEGRAM_URL) }
+            SettingRow("Contact developer", "@$TELEGRAM_USER", Icons.Rounded.OpenInNew) { open(TELEGRAM_URL) }
         }
 
         // The heart and the coffee cup are icons tinted with the Material You palette, so they follow the wallpaper colours.

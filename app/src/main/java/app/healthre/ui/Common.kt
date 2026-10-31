@@ -213,7 +213,5 @@ fun AppearanceSection(app: AppEnv) {
             trailingContent = { Switch(s.amoled, { s.updateAmoled(it) }) },
             colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
         )
-        Text("Navigation bar", style = MaterialTheme.typography.titleSmall)
-        Choice(listOf("Standard" to false, "Floating" to true), s.floatingNav, { s.updateFloatingNav(it) })
     }
 }

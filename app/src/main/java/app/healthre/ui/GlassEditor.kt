@@ -14,7 +14,8 @@ private fun Tweak(label: String, value: Float, range: ClosedFloatingPointRange<F
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-            Text("%.${decimals}f$unit".format(value), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            // The unit is appended after formatting, so a "%" in it can never be read as a format code.
+            Text("%.${decimals}f".format(value) + unit, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
         }
         Slider(value, onChange, valueRange = range)
     }
@@ -32,20 +33,18 @@ private fun Toggle(label: String, checked: Boolean, onChange: (Boolean) -> Unit)
 @Composable
 private fun Group(title: String) = Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
 
-/** Controls for the floating Liquid Glass bar. Changes apply live to the bar at the bottom of the screen. */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalLayoutApi::class)
+/** Standard or floating bar, and (for the floating one) its layout, corner roundness and selection look. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun GlassEditor(app: AppEnv) {
+fun NavBarEditor(app: AppEnv) {
     val s = app.theme
     val g = s.glass
     fun set(n: GlassStyle) = s.updateGlass(n)
 
-    if (!s.floatingNav) {
-        Text("The glass bar is only used by the floating navigation bar.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        FilledTonalButton({ s.updateFloatingNav(true) }, shapes = ButtonDefaults.shapes()) { Text("Switch to floating bar") }
-    }
+    Choice(listOf("Standard" to false, "Floating" to true), s.floatingNav, { s.updateFloatingNav(it) })
+    if (!s.floatingNav) return
 
-    Group("Style")
+    Group("Layout")
     Choice(listOf("Pill" to 0, "Icons" to 1, "Labels" to 2, "Dock" to 3), g.type, { set(g.copy(type = it)) })
     Text(
         when (g.type) {
@@ -57,14 +56,29 @@ fun GlassEditor(app: AppEnv) {
         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
     Tweak("Edge radius", g.radius, 0f..100f, " %") { set(g.copy(radius = it)) }
-    Text("Selection look", style = MaterialTheme.typography.bodyLarge)
+
+    Group("Selection look")
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         listOf("Filled", "Outline", "Soft", "Dot", "Colour").forEachIndexed { i, name ->
             FilterChip(g.selection == i, { set(g.copy(selection = i)) }, { Text(name) })
         }
     }
+}
 
-    Group("Glass")
+/** The Liquid Glass material of the floating bar. Changes apply live to the bar at the bottom of the screen. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun GlassEditor(app: AppEnv) {
+    val s = app.theme
+    val g = s.glass
+    fun set(n: GlassStyle) = s.updateGlass(n)
+
+    if (!s.floatingNav) {
+        Text("The glass look is only used by the floating navigation bar.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        FilledTonalButton({ s.updateFloatingNav(true) }, shapes = ButtonDefaults.shapes()) { Text("Switch to floating bar") }
+    }
+
+    Group("Material")
     Tweak("Blur", g.blur, 0f..30f, " dp") { set(g.copy(blur = it)) }
     Tweak("Refraction height", g.lensHeight, 0f..48f, " dp") { set(g.copy(lensHeight = it)) }
     Tweak("Refraction amount", g.lensAmount, 0f..48f, " dp") { set(g.copy(lensAmount = it)) }
