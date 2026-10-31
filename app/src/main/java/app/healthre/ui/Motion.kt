@@ -21,22 +21,28 @@ import kotlinx.coroutines.delay
 /** Multiplies every animation duration: 0 = instant, 0.6 = default, 1.5 = slowest. Set in Settings > Theme. */
 val LocalAnimScale = compositionLocalOf { 0.6f }
 
+/** False once a tab has been opened before, so its items appear instantly on later visits instead of fading in again. */
+val LocalEntrance = compositionLocalOf { true }
+
 /** A smooth tween whose duration and delay follow the animation speed setting. */
 fun <T> tw(ms: Int, scale: Float, delayMs: Int = 0, easing: Easing = EaseInOutCubic): TweenSpec<T> =
     tween((ms * scale).toInt(), (delayMs * scale).toInt(), easing)
 
-/** Fades and slides an item up when it first appears. Items with a higher [index] start slightly later, so lists cascade in. */
+/** Fades and slides an item up the first time its tab opens. Items with a higher [index] start slightly later, so lists cascade in. */
 @Composable
 fun Modifier.entrance(index: Int): Modifier {
     val scale = LocalAnimScale.current
+    val entranceNow = LocalEntrance.current
+    val play = remember { entranceNow }
+    if (!play) return this
     var shown by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        delay((index.coerceAtMost(8) * 40 * scale).toLong())
+        delay((index.coerceAtMost(6) * 25 * scale).toLong())
         shown = true
     }
-    val a by animateFloatAsState(if (shown) 1f else 0f, tw(450, scale, easing = EaseOutCubic), label = "entrance")
+    val a by animateFloatAsState(if (shown) 1f else 0f, tw(300, scale, easing = EaseOutCubic), label = "entrance")
     return this.graphicsLayer {
         alpha = a
-        translationY = (1f - a) * 24.dp.toPx()
+        translationY = (1f - a) * 16.dp.toPx()
     }
 }

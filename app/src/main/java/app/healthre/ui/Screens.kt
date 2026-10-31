@@ -24,6 +24,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.AnimationSpec
@@ -267,10 +268,16 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
                         scaleX = scale; scaleY = scale; alpha = 1f - 0.3f * backProgress
                     }) {
                         val animScale = LocalAnimScale.current
+                        // Entrance animations play only the first time a tab is opened.
+                        val visited = remember { mutableSetOf<Int>() }
+                        val firstVisit = tab !in visited
+                        LaunchedEffect(tab) { visited.add(tab) }
+                        androidx.compose.runtime.CompositionLocalProvider(LocalEntrance provides firstVisit) {
                         AnimatedContent(
                             targetState = tab,
                             // A quick crossfade: no sliding content under the glass bar and no waiting before the new page appears.
-                            transitionSpec = { fadeIn(tw(240, animScale)) togetherWith fadeOut(tw(140, animScale)) },
+                            // The old page stays fully visible while the new one fades in over it, so the screen never dips to the background colour.
+                            transitionSpec = { fadeIn(tw(180, animScale)) togetherWith ExitTransition.None },
                             label = "tab",
                         ) { t ->
                             when (t) {
@@ -279,7 +286,7 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
                                 2 -> History(app)
                                 else -> AnimatedContent(
                                     targetState = page,
-                                    transitionSpec = { fadeIn(tw(240, animScale)) togetherWith fadeOut(tw(140, animScale)) },
+                                    transitionSpec = { fadeIn(tw(180, animScale)) togetherWith ExitTransition.None },
                                     label = "page",
                                 ) { pg ->
                                     when (pg) {
@@ -290,6 +297,7 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
                                     }
                                 }
                             }
+                        }
                         }
                     }
                 }
