@@ -12,12 +12,15 @@ data class ScanResult(
  * Optional package scanner. OCR lives in a separate add-on APK so Doseful itself stays tiny and
  * has no network permission. The add-on returns raw recognised text; parsing happens here.
  */
+/** Releases page: used for the scanner add-on download and for "Check for updates". Opened in the browser. */
+const val RELEASES_URL = "https://github.com/maxcodl/Doseful/releases/latest"
+
 object Scanner {
     const val ACTION = "dev.maxpayne.doseful.action.SCAN"
     const val EXTRA_TEXT = "text"
 
     /** Where users get the add-on. Opened in the browser, so Doseful needs no INTERNET permission. */
-    const val DOWNLOAD_URL = "https://github.com/maxcodl/doseful/releases/latest"
+    const val DOWNLOAD_URL = RELEASES_URL
 
     fun intent(): Intent = Intent(ACTION)
 

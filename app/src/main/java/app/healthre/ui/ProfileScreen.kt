@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import app.healthre.Alarms
+import app.healthre.RELEASES_URL
 import app.healthre.AppEnv
 import app.healthre.data.Backup
 import kotlinx.coroutines.Dispatchers
@@ -88,6 +89,16 @@ fun ProfileScreen(app: AppEnv) {
                 OutlinedButton({ ctx.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${ctx.packageName}"))) }, shapes = ButtonDefaults.shapes()) { Text("Allow exact alarms") }
             }
             OutlinedButton({ ctx.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, ctx.packageName)) }, shapes = ButtonDefaults.shapes()) { Text("Notification settings") }
+        }
+
+        SectionCard("About") {
+            val version = remember { runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: "?" }
+            Text("Doseful $version", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Doseful never connects to the internet, so it can not check for updates by itself. Tap below to see the latest release in your browser.",
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            FilledTonalButton({ ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(RELEASES_URL))) }, shapes = ButtonDefaults.shapes()) { Text("Check for updates") }
         }
 
         Text(

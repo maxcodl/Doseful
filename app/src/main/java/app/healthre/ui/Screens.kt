@@ -22,6 +22,11 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import app.healthre.R
@@ -68,7 +73,7 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
             }
         },
         floatingActionButton = {
-            if (tab <= 1) LargeFloatingActionButton({ adding = true }) { Icon(Icons.Rounded.Add, "Add medicine") }
+            if (tab <= 1) FloatingActionButton({ adding = true }) { Icon(Icons.Rounded.Add, "Add medicine") }
         },
     ) { pad ->
         Column(Modifier.padding(pad).fillMaxSize()) {
@@ -308,27 +313,68 @@ internal fun History(app: AppEnv) {
     val skipToday = rows.firstOrNull()?.let { it.third > 0 && it.second < it.third } == true
     val streak = rows.drop(if (skipToday) 1 else 0).takeWhile { it.third == 0 || it.second == it.third }.count { it.third > 0 }
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    val card = MaterialTheme.colorScheme.surfaceContainerLow
+    val cardShape = RoundedCornerShape(28.dp)
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        item { Text("History", style = MaterialTheme.typography.displaySmall) }
         item {
-            Text("History", style = MaterialTheme.typography.displaySmall)
-            Spacer(Modifier.height(12.dp))
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Box(contentAlignment = Alignment.Center) {
-                    CircularWavyProgressIndicator(progress = { if (total == 0) 0f else taken / total.toFloat() }, modifier = Modifier.size(96.dp))
-                    Text(if (total == 0) "–" else "${taken * 100 / total}%", style = MaterialTheme.typography.titleLarge)
-                }
-                Column {
-                    Text("Adherence, last $days days", style = MaterialTheme.typography.titleMedium)
-                    Text("$taken of $total doses taken")
-                    Text("Streak: $streak day${if (streak == 1) "" else "s"}")
+            Surface(Modifier.fillMaxWidth(), shape = cardShape, color = card) {
+                Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                    Box(contentAlignment = Alignment.Center) {
+                        CircularWavyProgressIndicator(progress = { if (total == 0) 0f else taken / total.toFloat() }, modifier = Modifier.size(104.dp))
+                        Text(if (total == 0) "–" else "${taken * 100 / total}%", style = MaterialTheme.typography.headlineSmall)
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("Adherence", style = MaterialTheme.typography.titleLarge)
+                        Text("Last $days days", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.height(6.dp))
+                        Text("$taken of $total doses taken", style = MaterialTheme.typography.bodyLarge)
+                        Text("Streak: $streak day${if (streak == 1) "" else "s"}", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+                    }
                 }
             }
         }
-        items(rows, key = { it.first.toEpochDay() }) { (d, t, n) ->
-            ListItem(
-                headlineContent = { Text(if (d == today) "Today" else "${d.dayOfWeek.name.lowercase().replaceFirstChar { it.uppercase() }}, ${d.dayOfMonth}/${d.monthValue}") },
-                trailingContent = { Text(if (n == 0) "–" else "$t / $n", color = if (n > 0 && t == n) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface) },
-            )
+        item {
+            Surface(Modifier.fillMaxWidth(), shape = cardShape, color = card) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Day by day", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                    Row(Modifier.fillMaxWidth().height(110.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        rows.reversed().forEach { (d, t, n) ->
+                            val frac = if (n == 0) 0.06f else (t / n.toFloat()).coerceAtLeast(0.06f)
+                            val color = when {
+                                n == 0 -> MaterialTheme.colorScheme.outlineVariant
+                                t == n -> MaterialTheme.colorScheme.primary
+                                else -> MaterialTheme.colorScheme.tertiary
+                            }
+                            Column(Modifier.weight(1f).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+                                    Box(Modifier.fillMaxWidth().fillMaxHeight(frac).clip(RoundedCornerShape(6.dp)).background(color))
+                                }
+                                Text(d.dayOfWeek.name.first().toString(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        item {
+            Surface(Modifier.fillMaxWidth(), shape = cardShape, color = card) {
+                Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+                    rows.forEach { (d, t, n) ->
+                        Row(Modifier.fillMaxWidth().padding(vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                if (d == today) "Today" else "${d.dayOfWeek.name.take(3).lowercase().replaceFirstChar { it.uppercase() }}, ${d.dayOfMonth}/${d.monthValue}",
+                                Modifier.width(96.dp), style = MaterialTheme.typography.bodyLarge,
+                            )
+                            LinearProgressIndicator(progress = { if (n == 0) 0f else t / n.toFloat() }, Modifier.weight(1f).height(8.dp).clip(CircleShape))
+                            Text(
+                                if (n == 0) "–" else "$t/$n", Modifier.width(52.dp), textAlign = TextAlign.End,
+                                color = if (n > 0 && t == n) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
