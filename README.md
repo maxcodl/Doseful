@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  Track your medicines, get reminders on time, and keep an eye on stock.<br>
+  Track your medicines, get reminders on time, keep an eye on stock, and look after your health, including an optional cycle tracker.<br>
   No account. No cloud. No internet permission. Everything stays on your phone.
 </p>
 
@@ -42,13 +42,15 @@
 - **Medical ID.** An ID card with a blood type badge, allergy and condition tags, and tap-to-call emergency and doctor contacts. A full-screen, large-text view is there for emergencies. Only what you fill in is shown.
 - **Appointments.** Visits with the doctor, place, phone and notes, reminders a day and an hour before, and shortcuts to open the address in Maps, call, or add the visit to your calendar.
 - **Health log.** Track weight, blood pressure, blood sugar, heart rate and temperature, each with a chart. A new weight updates your BMI.
-- **Cycle tracker.** Opt in from Profile or setup. Log periods, flow and symptoms, see predictions and a calendar, cycle insights, irregularity warnings and remedies. Partner mode gives friendly tips and notifications on how to support her.
+- **Cycle tracker.** Opt in from setup or Profile and a Cycle tab appears. Log periods, flow, symptoms and notes, and see predicted periods and the fertile window on a calendar. Insights show average cycle and period length, a cycle-length chart and your top symptoms. Warnings flag short or long cycles, big swings in cycle length, long or very late periods, heavy flow and bleeding between periods. They are guidance, not a diagnosis. Remedies cover cramps, heavy flow, PMS and irregular cycles, tagged by how well supported they are, with when to see a doctor.
+- **Partner mode.** Choose **My partner** (the default for male profiles) to log her cycle instead. The tab turns into a friendly guide on how to support her, with tips for each stage, words that help and ones to avoid, gift and date ideas, and relationship memes. Add her name to personalise it.
+- **Daily cycle tips.** An optional 9:00 notification for PMS, the days before a period and period days, with a casual tip for you or a nudge to check in on her. Everything stays on your phone and is included in backups.
 - **Adherence.** A 14-day ring, a streak counter, a bar chart and a day-by-day list, plus your stats on the Profile page.
 - **App lock.** Optionally ask for your phone's PIN, pattern or fingerprint when Doseful opens.
 
 ### Made to feel good
 - **Material 3 Expressive.** Morphing shapes, expressive motion, wavy progress indicators and Material You dynamic colour.
-- **Swipe between pages.** A carousel of Today, Medicines, History and Profile. Tap a far tab and it jumps straight there.
+- **Swipe between pages.** A carousel of Today, Medicines, History, Profile and, if you turn it on, Cycle. Tap a far tab and it jumps straight there.
 - **Liquid Glass navigation bar.** An optional floating bar with four layouts, adjustable corner radius, five selection looks and a highlight that glides between items. A full glass editor lets you tune blur, refraction, tint, edge line, reflections and shadows.
 - **Make it yours.** Light, dark or system theme, AMOLED black, an app-wide corner roundness slider and an animation speed slider.
 - **Profile with photo.** Pick a picture from the system photo picker. It never leaves the device.
@@ -105,7 +107,7 @@ keyPassword=...
 
 ### Automatic builds
 
-GitHub Actions builds every push and pull request. Pushing a tag such as `v0.2.0` builds the signed release APK and publishes it as a GitHub Release, using that version's section of [CHANGELOG.md](CHANGELOG.md) as the release notes. See [`.github/workflows/build.yml`](.github/workflows/build.yml) for the secrets it needs.
+GitHub Actions builds every push and pull request. Pushing a tag such as `v0.3.0` builds the signed release APK and publishes it as a GitHub Release, using that version's section of [CHANGELOG.md](CHANGELOG.md) as the release notes. See [`.github/workflows/build.yml`](.github/workflows/build.yml) for the secrets it needs.
 
 ## Changelog
 
