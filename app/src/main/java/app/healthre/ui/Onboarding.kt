@@ -36,7 +36,7 @@ import app.healthre.Alarms
 import app.healthre.AppEnv
 import kotlinx.coroutines.launch
 
-private const val PAGES = 5
+private const val PAGES = 6
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -92,6 +92,7 @@ fun Onboarding(app: AppEnv) {
                     1 -> Features()
                     2 -> Look(app)
                     3 -> ProfilePage(app, form)
+                    4 -> CyclePage(app, form)
                     else -> Permissions()
                 }
             }
@@ -126,12 +127,14 @@ private fun Features() {
     Text("Built around you", style = MaterialTheme.typography.displaySmall, textAlign = TextAlign.Center)
     Spacer(Modifier.height(24.dp))
     val items = listOf(
-        Triple(Icons.Rounded.AlarmOn, "Reminders that arrive", "Exact alarms with Taken and Skip right in the notification."),
+        Triple(Icons.Rounded.AlarmOn, "Reminders that arrive", "Alarm-style reminders with Taken and Skip right in the notification."),
         Triple(Icons.Rounded.WifiOff, "Fully offline", "No account, no cloud, no internet permission at all."),
         Triple(Icons.Rounded.Inventory2, "Stock and refills", "Know when a pack is running low before it runs out."),
         Triple(Icons.Rounded.Insights, "Adherence at a glance", "Streaks and history so you can see how you are doing."),
+        Triple(Icons.Rounded.MonitorHeart, "Appointments and vitals", "Visit reminders, a health log with charts, and a Medical ID card."),
+        Triple(Icons.Rounded.WaterDrop, "Cycle tracker", "Predictions, insights and tips, for you or to support your partner."),
     )
-    val shapes = listOf(MaterialShapes.Cookie6Sided, MaterialShapes.Clover4Leaf, MaterialShapes.Flower, MaterialShapes.Pentagon)
+    val shapes = listOf(MaterialShapes.Cookie6Sided, MaterialShapes.Clover4Leaf, MaterialShapes.Flower, MaterialShapes.Pentagon, MaterialShapes.Cookie9Sided, MaterialShapes.Sunny)
     items.forEachIndexed { i, (icon, title, text) ->
         Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             SpinningShape(shapes[i].toShape(), 64.dp, MaterialTheme.colorScheme.tertiaryContainer, 30 + i * 6) {
@@ -171,6 +174,54 @@ private fun ProfilePage(app: AppEnv, form: ProfileForm) {
     if (app.profile.avatarVersion >= 0 && app.profile.avatar() != null) TextButton({ app.profile.setAvatar(null) }) { Text("Remove photo") }
     Spacer(Modifier.height(16.dp))
     SectionCard("Details") { ProfileFields(form, showEmail = false) }
+}
+
+/** Optional period tracker setup. Copy follows the gender picked on the previous page, and can be switched. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun CyclePage(app: AppEnv, form: ProfileForm) {
+    val c = MaterialTheme.colorScheme
+    val ctx = LocalContext.current
+    val t = app.theme
+    val partner = t.cycleFor == "partner" || (t.cycleFor == "" && form.gender == "Male")
+    val clear = androidx.compose.ui.graphics.Color.Transparent
+    SpinningShape(MaterialShapes.Flower.toShape(), 150.dp, c.tertiaryContainer, 34) {
+        Icon(Icons.Rounded.WaterDrop, null, Modifier.size(64.dp), tint = c.onTertiaryContainer)
+    }
+    Spacer(Modifier.height(24.dp))
+    Text(if (partner) "Be there for her" else "Know your cycle", style = MaterialTheme.typography.displaySmall, textAlign = TextAlign.Center)
+    Spacer(Modifier.height(8.dp))
+    Text(
+        if (partner) "Log her cycle and get friendly nudges on when to check in, what to bring, and what to say."
+        else "Log your periods and get predictions, irregularity alerts, insights and self-care tips.",
+        textAlign = TextAlign.Center, color = c.onSurfaceVariant,
+    )
+    Spacer(Modifier.height(24.dp))
+    ElevatedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(vertical = 8.dp)) {
+            ListItem(
+                headlineContent = { Text("Turn on the Cycle tab") },
+                supportingContent = { Text("Stays on this device.") },
+                trailingContent = { Switch(t.cycleEnabled, { t.updateCycleEnabled(it); Alarms.scheduleCycle(ctx) }) },
+                colors = ListItemDefaults.colors(containerColor = clear),
+            )
+            if (t.cycleEnabled) {
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Whose cycle is this?", style = MaterialTheme.typography.titleSmall)
+                    Choice(listOf("Me" to false, "My partner" to true), partner, { t.updateCycleFor(if (it) "partner" else "me") })
+                    if (partner) AppField(t.cyclePartnerName, { t.updateCyclePartnerName(it) }, Modifier.fillMaxWidth(), label = { Text("Her name") }, singleLine = true)
+                }
+                ListItem(
+                    headlineContent = { Text(if (partner) "Daily support tips" else "Reminders and tips") },
+                    supportingContent = { Text("A friendly notification at 9:00 when it matters") },
+                    trailingContent = { Switch(t.cycleReminder, { t.updateCycleReminder(it); Alarms.scheduleCycle(ctx) }) },
+                    colors = ListItemDefaults.colors(containerColor = clear),
+                )
+            }
+        }
+    }
+    Spacer(Modifier.height(12.dp))
+    Text("Skip it if it is not for you. You can change this any time in Profile.", style = MaterialTheme.typography.bodySmall, color = c.onSurfaceVariant, textAlign = TextAlign.Center)
 }
 
 @Composable

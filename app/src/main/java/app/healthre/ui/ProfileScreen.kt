@@ -22,6 +22,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import app.healthre.Alarms
 import app.healthre.AppEnv
+import app.healthre.data.CycleEvent
+import app.healthre.partnerMode
+import app.healthre.partnerName
 import app.healthre.RELEASES_URL
 import app.healthre.SOURCE_URL
 import app.healthre.TELEGRAM_URL
@@ -75,6 +78,7 @@ fun ProfileScreen(app: AppEnv, onOpen: (Int) -> Unit) {
         MedicalIdCard(app)
         AppointmentsSummary(app) { onOpen(2) }
         HealthSummary(app) { onOpen(3) }
+        CycleSettings(app)
 
         SectionCard("Details", Icons.Rounded.Person, collapsible = true) {
             ProfileFields(form)
@@ -82,6 +86,59 @@ fun ProfileScreen(app: AppEnv, onOpen: (Int) -> Unit) {
                 Text("Save")
             }
         }
+    }
+}
+
+/** Period tracker switch: shows or hides the Cycle tab. */
+@Composable
+private fun CycleSettings(app: AppEnv) {
+    val ctx = LocalContext.current
+    SectionCard("Cycle tracking", Icons.Rounded.WaterDrop, collapsible = true) {
+        val cScope = rememberCoroutineScope()
+        var wipe by remember { mutableStateOf(false) }
+        val transparent = androidx.compose.ui.graphics.Color.Transparent
+        fun reschedule() { if (!app.demo) Alarms.scheduleCycle(ctx) }
+        ListItem(
+            headlineContent = { Text("Period tracker") },
+            supportingContent = { Text("Adds a Cycle tab with predictions, insights and remedies. Data stays on this device.") },
+            trailingContent = { Switch(app.theme.cycleEnabled, { app.theme.updateCycleEnabled(it); reschedule() }) },
+            colors = ListItemDefaults.colors(containerColor = transparent),
+        )
+        if (app.theme.cycleEnabled) {
+            Text("Whose cycle is this?", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
+            Choice(listOf("Me" to false, "My partner" to true), app.partnerMode, { app.theme.updateCycleFor(if (it) "partner" else "me"); reschedule() })
+            if (app.partnerMode) AppField(
+                app.theme.cyclePartnerName, { app.theme.updateCyclePartnerName(it) },
+                Modifier.fillMaxWidth().padding(top = 8.dp), label = { Text("Her name (optional)") }, singleLine = true,
+            )
+            ListItem(
+                headlineContent = { Text(if (app.partnerMode) "Daily support tips" else "Period reminders and tips") },
+                supportingContent = { Text(if (app.partnerMode) "Notifications on what she may need, and how to help" else "Heads-up before your period, plus daily self-care tips") },
+                trailingContent = { Switch(app.theme.cycleReminder, { app.theme.updateCycleReminder(it); reschedule() }) },
+                colors = ListItemDefaults.colors(containerColor = transparent),
+            )
+        }
+        if (app.theme.cycleEnabled) {
+            var next by remember { mutableIntStateOf(0) }
+            FilledTonalButton({
+                val e = CycleEvent.entries[next++ % CycleEvent.entries.size]
+                val day = LocalDate.now().toEpochDay()
+                val (t, x) = if (app.partnerMode) partnerNotification(e, app.partnerName, day) else selfNotification(e, day)
+                Alarms.notifyCycle(ctx, t, x)
+            }, shapes = ButtonDefaults.shapes()) { Text("Send test tip") }
+        }
+        SettingRow("Delete cycle data", "Removes all logged periods and symptoms") { wipe = true }
+        if (wipe) AlertDialog(
+            onDismissRequest = { wipe = false }, title = { Text("Delete cycle data?") },
+            text = { Text("All periods, flow and symptom logs will be removed. This cannot be undone.") },
+            confirmButton = {
+                TextButton({
+                    cScope.launch { val d = app.db.dao(); d.clearCycles(); d.clearPeriodDays(); reschedule() }
+                    wipe = false
+                }) { Text("Delete") }
+            },
+            dismissButton = { TextButton({ wipe = false }) { Text("Cancel") } },
+        )
     }
 }
 

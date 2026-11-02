@@ -14,8 +14,8 @@ android {
         applicationId = "dev.maxpayne.doseful"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.2.0"
+        versionCode = 4
+        versionName = "0.3.0"
     }
 
     // Releases use ./key.properties (storeFile, storePassword, keyAlias, keyPassword) if present,
@@ -69,4 +69,5 @@ dependencies {
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
     debugImplementation(libs.compose.tooling)
+    testImplementation(libs.junit)
 }

@@ -1,5 +1,6 @@
 package app.healthre.ui
 
+import app.healthre.clock
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -87,7 +88,7 @@ import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.LocalTime
 
-internal fun fmt(min: Int) = "%02d:%02d".format(min / 60, min % 60)
+internal fun fmt(min: Int) = clock(min)
 private fun bit(d: LocalDate) = 1 shl (d.dayOfWeek.value - 1)
 internal fun toast(c: Context, s: String) = Toast.makeText(c, s, Toast.LENGTH_LONG).show()
 internal val kbNum = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -229,8 +230,13 @@ private fun FloatingNav(items: List<Pair<String, ImageVector>>, selected: Int, p
 fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
     val animScale = LocalAnimScale.current
     val scope = rememberCoroutineScope()
-    // The four tabs are pages of a carousel: swipe sideways, or tap the bar. All stay composed, so nothing rebuilds or goes blank.
-    val pager = androidx.compose.foundation.pager.rememberPagerState(initialPage = 0) { 4 }
+    // The tabs are pages of a carousel: swipe sideways, or tap the bar. All stay composed, so nothing rebuilds or goes blank.
+    // Cycle is optional (Settings): Profile is always last.
+    val tabs = listOf("today", "meds", "history") + (if (app.theme.cycleEnabled) listOf("cycle") else emptyList()) + "profile"
+    val pager = androidx.compose.foundation.pager.rememberPagerState(initialPage = 0) { tabs.size }
+    // The toggle lives in Settings (Profile tab), so when the tab count changes, stay on Profile.
+    var prevTabs by remember { mutableIntStateOf(tabs.size) }
+    LaunchedEffect(tabs.size) { if (prevTabs != tabs.size) { prevTabs = tabs.size; pager.scrollToPage(tabs.lastIndex) } }
     val tab = pager.currentPage
     val position = pager.currentPage + pager.currentPageOffsetFraction
     // Tapping a tab more than one step away must not scroll through the pages in between. Those jumps dim the page briefly,
@@ -270,11 +276,20 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
         }
     }
     // Back from a sub-page returns to Profile first.
-    androidx.activity.compose.BackHandler(enabled = tab == 3 && page != 0) { page = 0 }
+    androidx.activity.compose.BackHandler(enabled = tab == tabs.lastIndex && page != 0) { page = 0 }
     fun goTo(i: Int) { scope.launch { moveTo(i) } }
     val floating = app.theme.floatingNav
     val backdrop = com.kyant.backdrop.backdrops.rememberLayerBackdrop()
-    val navItems = listOf("Today" to Icons.Rounded.Today, "Medicines" to ImageVector.vectorResource(R.drawable.ic_pill), "History" to Icons.Rounded.Insights, "Profile" to Icons.Rounded.Person)
+    val pill = ImageVector.vectorResource(R.drawable.ic_pill)
+    val navItems = tabs.map {
+        when (it) {
+            "today" -> "Today" to Icons.Rounded.Today
+            "meds" -> "Medicines" to pill
+            "history" -> "History" to Icons.Rounded.Insights
+            "cycle" -> "Cycle" to Icons.Rounded.WaterDrop
+            else -> "Profile" to Icons.Rounded.Person
+        }
+    }
     androidx.compose.runtime.CompositionLocalProvider(LocalListBottom provides if (floating) 200.dp else 96.dp) {
         Scaffold(
             // Standard mode uses a normal bottom bar and button. Floating mode draws both over the page instead.
@@ -298,6 +313,7 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
                             scaleX = scale; scaleY = scale; alpha = pageFade.value * (1f - 0.3f * backProgress)
                         },
                         beyondViewportPageCount = 3,
+                        key = { tabs.getOrElse(it) { _ -> "tab$it" } },
                     ) { i ->
                         // Carousel feel: the page you are leaving shrinks and fades a little as the next one slides in.
                         Box(
@@ -307,10 +323,11 @@ fun MainScaffold(app: AppEnv, header: @Composable ColumnScope.() -> Unit = {}) {
                                 scaleX = s; scaleY = s; alpha = 1f - 0.45f * off
                             },
                         ) {
-                            when (i) {
-                                0 -> Today(app)
-                                1 -> Medicines(app) { editing = it }
-                                2 -> History(app)
+                            when (tabs.getOrNull(i)) {
+                                "today" -> Today(app) { page = 0; goTo(tabs.lastIndex) }
+                                "meds" -> Medicines(app) { editing = it }
+                                "history" -> History(app)
+                                "cycle" -> CycleScreen(app)
                                 else -> when (page) {
                                     1 -> SettingsScreen(app) { page = 0 }
                                     2 -> AppointmentsScreen(app) { page = 0 }
@@ -367,7 +384,7 @@ private fun StatTile(
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-internal fun Today(app: AppEnv) {
+internal fun Today(app: AppEnv, onProfile: () -> Unit = {}) {
     val ctx = LocalContext.current
     val dao = app.db.dao()
     val day = remember { LocalDate.now() }
@@ -397,7 +414,7 @@ internal fun Today(app: AppEnv) {
                     Text(greeting, style = MaterialTheme.typography.titleLarge, color = c.onSurfaceVariant)
                     Text(name, style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Black), maxLines = 1)
                 }
-                Avatar(app, 60.dp)
+                Avatar(app, 60.dp, Modifier.clip(CircleShape).clickable(onClick = onProfile))
             }
             Spacer(Modifier.height(12.dp))
         }
@@ -613,7 +630,7 @@ internal fun MedicineDialog(app: AppEnv, initial: Medicine?, onDone: () -> Unit)
     var batch by remember { mutableStateOf(initial?.batch ?: "") }
     val times: SnapshotStateList<Int> = remember { mutableStateListOf<Int>().also { if (initial == null) it.add(8 * 60) } }
     var mask by remember { mutableIntStateOf(0b1111111) }
-    val picker = rememberTimePickerState(8, 0, is24Hour = true)
+    val picker = rememberTimePickerState(8, 0, is24Hour = false)
     var pickTime by remember { mutableStateOf(false) }
 
     LaunchedEffect(initial) {

@@ -14,6 +14,8 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import app.healthre.data.*
+import app.healthre.ui.partnerNotification
+import app.healthre.ui.selfNotification
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -27,6 +29,9 @@ object Alarms {
     private const val CH_ALARM = "dose_alarm"
     private const val CH_REFILL = "refill"
     private const val CH_APPT = "appointments"
+    private const val CH_CYCLE = "cycle"
+    private const val CYCLE_CODE = 5_000_000
+    private const val CYCLE_NOTIF = 5_000_001
     private const val APPT_BASE = 3_000_000
     private const val STATUS_ID = 2_000_000
     private const val TEST_ID = 2_000_001
@@ -56,6 +61,7 @@ object Alarms {
 
         nm.createNotificationChannel(NotificationChannel(CH_REFILL, "Refill reminders", NotificationManager.IMPORTANCE_DEFAULT))
         nm.createNotificationChannel(NotificationChannel(CH_APPT, "Appointment reminders", NotificationManager.IMPORTANCE_HIGH))
+        nm.createNotificationChannel(NotificationChannel(CH_CYCLE, "Period predictions", NotificationManager.IMPORTANCE_DEFAULT))
 
         nm.createNotificationChannel(NotificationChannel(CH_STATUS, "Today's progress (persistent)", NotificationManager.IMPORTANCE_LOW).apply {
             description = "An always-visible summary of today's doses. Turn this off in your phone's notification settings to hide it."
@@ -126,6 +132,7 @@ object Alarms {
     suspend fun rescheduleAll(ctx: Context, dao: AppDao) {
         dao.allSchedules().forEach { schedule(ctx, it) }
         dao.appointmentsNow().forEach { scheduleAppointment(ctx, it) }
+        scheduleCycle(ctx)
         scheduleMidnight(ctx)
         updateStatus(ctx, dao)
     }
@@ -207,7 +214,7 @@ object Alarms {
     }
 
     fun notifyAppointment(ctx: Context, a: Appointment, which: Int) {
-        val time = "%02d:%02d".format(a.minuteOfDay / 60, a.minuteOfDay % 60)
+        val time = clock(a.minuteOfDay)
         val title = a.title + a.doctor.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty()
         val text = (if (which == 0) "Tomorrow at $time" else "In 1 hour, at $time") + a.place.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty()
         val n = NotificationCompat.Builder(ctx, CH_APPT)
@@ -216,6 +223,42 @@ object Alarms {
             .setPriority(NotificationCompat.PRIORITY_HIGH).setCategory(NotificationCompat.CATEGORY_EVENT)
             .setContentIntent(openAppPi(ctx)).setAutoCancel(true).build()
         notify(ctx, 4_000_000 + a.id.toInt() * 2 + which, n)
+    }
+
+    private fun cyclePi(ctx: Context, flags: Int = PendingIntent.FLAG_UPDATE_CURRENT) = PendingIntent.getBroadcast(
+        ctx, CYCLE_CODE, Intent(ctx, AlarmReceiver::class.java).putExtra("cycle", true), flags or PendingIntent.FLAG_IMMUTABLE,
+    )
+
+    /** Arms the next 09:00 cycle check (daily). Cancelled when the tracker or its reminders are off. */
+    fun scheduleCycle(ctx: Context) {
+        val am = ctx.getSystemService(AlarmManager::class.java)
+        cyclePi(ctx, PendingIntent.FLAG_NO_CREATE)?.let { am.cancel(it) }
+        val theme = (ctx.applicationContext as? AppEnv)?.theme ?: return
+        if (!theme.cycleEnabled || !theme.cycleReminder) return
+        val now = ZonedDateTime.now()
+        var at = now.toLocalDate().atTime(9, 0).atZone(now.zone)
+        if (!at.isAfter(now)) at = at.plusDays(1)
+        val ms = at.toInstant().toEpochMilli()
+        if (canExact(ctx)) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, ms, cyclePi(ctx)) else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, ms, cyclePi(ctx))
+    }
+
+    /** Today's cycle notification (period heads-up, PMS, support or self-care tip), if there is one. */
+    suspend fun checkCycle(app: AppEnv, dao: AppDao) {
+        if (!app.theme.cycleEnabled || !app.theme.cycleReminder) return
+        val cycles = dao.cyclesNow()
+        val today = LocalDate.now().toEpochDay()
+        val info = CycleMath.info(cycles, today) ?: return
+        val event = CycleMath.dailyEvent(info, CycleMath.active(cycles, today), today) ?: return
+        val (title, text) = if (app.partnerMode) partnerNotification(event, app.partnerName, today) else selfNotification(event, today)
+        notifyCycle(app.ctx, title, text)
+    }
+
+    fun notifyCycle(ctx: Context, title: String, text: String) {
+        val n = NotificationCompat.Builder(ctx, CH_CYCLE)
+            .setSmallIcon(R.drawable.ic_pill).setContentTitle(title).setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setContentIntent(openAppPi(ctx)).setAutoCancel(true).build()
+        notify(ctx, CYCLE_NOTIF, n)
     }
 
     /** The persistent notification: today's progress and the next dose. It uses its own low-priority channel so it can be hidden in system settings. */
@@ -231,7 +274,7 @@ object Alarms {
         val text = when {
             list.isEmpty() -> "No doses scheduled today"
             pending.isEmpty() -> "All $done doses handled today"
-            else -> "$done of ${list.size} taken" + next?.let { " · Next %02d:%02d %s".format(it.schedule.minuteOfDay / 60, it.schedule.minuteOfDay % 60, it.medicine.name) }.orEmpty()
+            else -> "$done of ${list.size} taken" + next?.let { " · Next ${clock(it.schedule.minuteOfDay)} ${it.medicine.name}" }.orEmpty()
         }
         val n = NotificationCompat.Builder(ctx, CH_STATUS)
             .setSmallIcon(R.drawable.ic_pill)
@@ -281,6 +324,11 @@ class AlarmReceiver : BroadcastReceiver() {
         val which = intent.getIntExtra("which", 1)
         Alarms.receiverWork(ctx, goAsync()) { app ->
             val dao = app.db.dao()
+            if (intent.getBooleanExtra("cycle", false)) {
+                Alarms.checkCycle(app, dao)
+                Alarms.scheduleCycle(app)
+                return@receiverWork
+            }
             if (appt > 0) {
                 dao.appointment(appt)?.let { Alarms.notifyAppointment(app, it, which) }
                 return@receiverWork
@@ -316,3 +364,6 @@ class BootReceiver : BroadcastReceiver() {
         Alarms.receiverWork(ctx, goAsync()) { app -> Alarms.rescheduleAll(app, app.db.dao()) }
     }
 }
+
+/** Minutes of day as 12-hour time, e.g. 8:05 AM. */
+internal fun clock(min: Int) = "%d:%02d %s".format((min / 60 + 11) % 12 + 1, min % 60, if (min / 60 < 12) "AM" else "PM")

@@ -1,5 +1,6 @@
 package app.healthre.ui
 
+import app.healthre.clock
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -276,7 +277,7 @@ internal fun AppointmentsSummary(app: AppEnv, onOpen: () -> Unit) {
             Column {
                 Text(next.title, style = MaterialTheme.typography.titleMedium)
                 if (next.doctor.isNotBlank()) Text(next.doctor, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("%02d:%02d · %s".format(next.minuteOfDay / 60, next.minuteOfDay % 60, whenLabel(next.epochDay)), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Text("${clock(next.minuteOfDay)} · ${whenLabel(next.epochDay)}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             }
         }
         FilledTonalButton(onOpen) { Text(if (next == null) "Add an appointment" else "All appointments") }

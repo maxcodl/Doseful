@@ -69,6 +69,24 @@ data class Measurement(
     val note: String = "",
 )
 
+/** One period. [endDay] null while it is still going. */
+@Entity
+data class PeriodCycle(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val startDay: Long,
+    val endDay: Long? = null,
+)
+
+/** Daily log. [flow] 0 none, 1 spotting, 2 light, 3 medium, 4 heavy. [symptoms] is a comma list of keys. */
+@Entity(indices = [Index(value = ["epochDay"], unique = true)])
+data class PeriodDay(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val epochDay: Long,
+    val flow: Int = 0,
+    val symptoms: String = "",
+    val note: String = "",
+)
+
 data class ScheduleWithMedicine(
     @Embedded val schedule: Schedule,
     @Relation(parentColumn = "medicineId", entityColumn = "id") val medicine: Medicine,
@@ -116,6 +134,20 @@ interface AppDao {
     @Insert suspend fun insert(m: Measurement): Long
     @Delete suspend fun delete(m: Measurement)
 
+    @Query("SELECT * FROM PeriodCycle ORDER BY startDay") fun cycles(): Flow<List<PeriodCycle>>
+    @Query("SELECT * FROM PeriodCycle ORDER BY startDay") suspend fun cyclesNow(): List<PeriodCycle>
+    @Insert suspend fun insert(c: PeriodCycle): Long
+    @Update suspend fun update(c: PeriodCycle)
+    @Delete suspend fun delete(c: PeriodCycle)
+    @Query("SELECT * FROM PeriodDay ORDER BY epochDay") fun periodDays(): Flow<List<PeriodDay>>
+    @Query("SELECT * FROM PeriodDay") suspend fun periodDaysNow(): List<PeriodDay>
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsert(d: PeriodDay)
+    @Query("DELETE FROM PeriodDay WHERE epochDay = :day") suspend fun clearPeriodDay(day: Long)
+    @Query("DELETE FROM PeriodCycle") suspend fun clearCycles()
+    @Query("DELETE FROM PeriodDay") suspend fun clearPeriodDays()
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertCycles(l: List<PeriodCycle>)
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertPeriodDays(l: List<PeriodDay>)
+
     // Backup / restore
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertAppointments(l: List<Appointment>)
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertMeasurements(l: List<Measurement>)
@@ -133,9 +165,9 @@ class Converters {
 }
 
 @Database(
-    entities = [Medicine::class, Schedule::class, DoseLog::class, Appointment::class, Measurement::class],
-    version = 3,
-    autoMigrations = [AutoMigration(from = 2, to = 3)],
+    entities = [Medicine::class, Schedule::class, DoseLog::class, Appointment::class, Measurement::class, PeriodCycle::class, PeriodDay::class],
+    version = 4,
+    autoMigrations = [AutoMigration(from = 2, to = 3), AutoMigration(from = 3, to = 4)],
 )
 @TypeConverters(Converters::class)
 abstract class Db : RoomDatabase() {

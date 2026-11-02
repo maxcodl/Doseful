@@ -2,6 +2,17 @@
 
 All notable changes to Doseful are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-11-02
+
+### Added
+- **Period tracker (optional).** Turn it on in Profile or during setup to get a Cycle tab: log periods, flow and symptoms, see predicted periods and the fertile window on a calendar, cycle-length insights, warnings for irregular cycles, remedies with when-to-see-a-doctor guidance, and an optional reminder before your next period. Included in backups.
+- **Partner mode.** Male users (or anyone who picks "My partner" in Profile) track their partner's cycle and get tips on how to support her instead of remedies: check in on her, gift ideas, words that help and avoid. Optional partner name.
+- **Tap your photo on Today** to jump to Profile.
+- **Daily cycle notifications** at 9:00: PMS and period heads-ups, plus a support tip (partner mode) or self-care tip (self mode) on period days.
+
+### Changed
+- Setup has a new Cycle page and an updated feature list.
+
 ## [0.2.0] - 2026-11-01
 
 A big update: a redesigned Today screen, a much fuller Profile, a floating Liquid Glass navigation bar you can restyle, and reminders that you can actually hear.

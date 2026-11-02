@@ -42,6 +42,7 @@
 - **Medical ID.** An ID card with a blood type badge, allergy and condition tags, and tap-to-call emergency and doctor contacts. A full-screen, large-text view is there for emergencies. Only what you fill in is shown.
 - **Appointments.** Visits with the doctor, place, phone and notes, reminders a day and an hour before, and shortcuts to open the address in Maps, call, or add the visit to your calendar.
 - **Health log.** Track weight, blood pressure, blood sugar, heart rate and temperature, each with a chart. A new weight updates your BMI.
+- **Cycle tracker.** Opt in from Profile or setup. Log periods, flow and symptoms, see predictions and a calendar, cycle insights, irregularity warnings and remedies. Partner mode gives friendly tips and notifications on how to support her.
 - **Adherence.** A 14-day ring, a streak counter, a bar chart and a day-by-day list, plus your stats on the Profile page.
 - **App lock.** Optionally ask for your phone's PIN, pattern or fingerprint when Doseful opens.
 

@@ -12,6 +12,7 @@ coreKtx = "1.19.1"
 backdrop = "2.0.1"
 
 [libraries]
+junit = { module = "junit:junit", version = "4.13.2" }
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 compose-ui = { module = "androidx.compose.ui:ui" }
 compose-tooling = { module = "androidx.compose.ui:ui-tooling" }

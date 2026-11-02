@@ -41,7 +41,7 @@ internal fun Measurement.shown(): String {
     return if (vital?.dual == true) "${value.toInt()}/${value2.toInt()}" else num(value)
 }
 
-private val stamp = DateTimeFormatter.ofPattern("d MMM, HH:mm")
+private val stamp = DateTimeFormatter.ofPattern("d MMM, h:mm a")
 private fun Measurement.whenText(): String = Instant.ofEpochMilli(recordedAt).atZone(ZoneId.systemDefault()).format(stamp)
 
 @Composable

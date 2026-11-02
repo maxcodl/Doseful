@@ -71,6 +71,11 @@ private suspend fun seed(d: AppDao) {
     d.insert(Appointment(title = "Check-up", doctor = "Dr. Sharma", place = "City Clinic, 12 Park Road", phone = "+91 90000 00001", epochDay = today + 3, minuteOfDay = 10 * 60 + 30, notes = "Bring last blood test report"))
     for (i in 0 until 8) d.insert(Measurement(type = "weight", value = 69.2f - i * 0.3f, recordedAt = System.currentTimeMillis() - (7 - i) * 86_400_000L))
     for (i in 0 until 6) d.insert(Measurement(type = "bp", value = 118f + (i % 3) * 3, value2 = 78f + (i % 2) * 2, recordedAt = System.currentTimeMillis() - (5 - i) * 86_400_000L))
+    // Sample cycles (a little irregular, so the warning card shows): 25, 34, 26, 30 day gaps.
+    listOf(-132L to 4, -107L to 5, -73L to 5, -47L to 6, -17L to 5).forEach { (s, len) -> d.insert(PeriodCycle(startDay = today + s, endDay = today + s + len - 1)) }
+    d.upsert(PeriodDay(epochDay = today - 15, flow = 4, symptoms = "Cramps,Fatigue"))
+    d.upsert(PeriodDay(epochDay = today - 14, flow = 3, symptoms = "Cramps"))
+    d.upsert(PeriodDay(epochDay = today - 30, flow = 1, symptoms = "Headache"))
     var k = 0
     for (m in meds) {
         val mid = d.insert(Medicine(name = m.name, strength = m.strength, form = m.form, stock = m.stock, refillThreshold = m.refillAt, expiry = "08/2027", manufacturer = "Sample Pharma"))

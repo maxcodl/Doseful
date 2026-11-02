@@ -1,5 +1,6 @@
 package app.healthre.ui
 
+import app.healthre.clock
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -78,7 +79,7 @@ private fun AppointmentCard(a: Appointment, onEdit: () -> Unit, onDelete: () -> 
                 Column(Modifier.weight(1f)) {
                     Text(a.title, style = MaterialTheme.typography.titleLarge)
                     if (a.doctor.isNotBlank()) Text(a.doctor, color = c.onSurfaceVariant)
-                    Text("%02d:%02d · %s".format(a.minuteOfDay / 60, a.minuteOfDay % 60, whenLabel(a.epochDay)), style = MaterialTheme.typography.labelLarge, color = c.primary)
+                    Text("${clock(a.minuteOfDay)} · ${whenLabel(a.epochDay)}", style = MaterialTheme.typography.labelLarge, color = c.primary)
                 }
             }
             if (a.place.isNotBlank()) Text(a.place)
@@ -122,7 +123,7 @@ internal fun AppointmentDialog(app: AppEnv, initial: Appointment?, onDone: () ->
     var pickDate by remember { mutableStateOf(false) }
     var pickTime by remember { mutableStateOf(false) }
     val dateState = rememberDatePickerState(initialSelectedDateMillis = LocalDate.ofEpochDay(day).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
-    val timeState = rememberTimePickerState(minute / 60, minute % 60, is24Hour = true)
+    val timeState = rememberTimePickerState(minute / 60, minute % 60, is24Hour = false)
 
     if (pickDate) DatePickerDialog(
         onDismissRequest = { pickDate = false },
@@ -154,7 +155,7 @@ internal fun AppointmentDialog(app: AppEnv, initial: Appointment?, onDone: () ->
                 AppField(phone, { phone = it }, Modifier.fillMaxWidth(), label = { Text("Phone") }, singleLine = true, keyboardOptions = kbPhone)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton({ pickDate = true }, Modifier.weight(1f)) { Icon(Icons.Rounded.CalendarMonth, null); Spacer(Modifier.width(6.dp)); Text(dateText(day)) }
-                    OutlinedButton({ pickTime = true }) { Icon(Icons.Rounded.Schedule, null); Spacer(Modifier.width(6.dp)); Text("%02d:%02d".format(minute / 60, minute % 60)) }
+                    OutlinedButton({ pickTime = true }) { Icon(Icons.Rounded.Schedule, null); Spacer(Modifier.width(6.dp)); Text(clock(minute)) }
                 }
                 AppField(notes, { notes = it }, Modifier.fillMaxWidth(), label = { Text("Notes (bring reports, fasting…)") })
                 Text("Remind me", style = MaterialTheme.typography.titleSmall)

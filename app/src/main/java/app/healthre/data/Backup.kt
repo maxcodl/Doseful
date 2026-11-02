@@ -25,6 +25,14 @@ object Backup {
                 JSONObject().put("type", it.type).put("value", it.value.toDouble()).put("value2", it.value2.toDouble())
                     .put("recordedAt", it.recordedAt).put("note", it.note)
             })
+            .put("cycleEnabled", app.theme.cycleEnabled).put("cycleReminder", app.theme.cycleReminder)
+            .put("cycleFor", app.theme.cycleFor).put("cyclePartnerName", app.theme.cyclePartnerName)
+            .put("cycles", arr(d.cyclesNow()) {
+                JSONObject().put("startDay", it.startDay).put("endDay", it.endDay ?: JSONObject.NULL)
+            })
+            .put("periodDays", arr(d.periodDaysNow()) {
+                JSONObject().put("epochDay", it.epochDay).put("flow", it.flow).put("symptoms", it.symptoms).put("note", it.note)
+            })
             .put("medicines", arr(d.allMedicines()) {
                 JSONObject().put("id", it.id).put("name", it.name).put("strength", it.strength).put("form", it.form)
                     .put("unitDose", it.unitDose).put("stock", it.stock).put("refillThreshold", it.refillThreshold)
@@ -61,6 +69,8 @@ object Backup {
         val measures = optList("measurements") {
             Measurement(0, it.getString("type"), it.getDouble("value").toFloat(), it.optDouble("value2", 0.0).toFloat(), it.optLong("recordedAt"), it.optString("note"))
         }
+        val cycles = optList("cycles") { PeriodCycle(0, it.getLong("startDay"), if (it.isNull("endDay")) null else it.getLong("endDay")) }
+        val pDays = optList("periodDays") { PeriodDay(0, it.getLong("epochDay"), it.optInt("flow"), it.optString("symptoms"), it.optString("note")) }
 
         val d = app.db.dao()
         if (!app.demo) {
@@ -70,6 +80,13 @@ object Backup {
         app.db.clearAllTables()
         d.insertMedicines(meds); d.insertSchedules(scheds); d.insertLogs(logs)
         d.insertAppointments(appts); d.insertMeasurements(measures)
+        d.insertCycles(cycles); d.insertPeriodDays(pDays)
+        // Backups from before the tracker existed carry no cycle keys: leave those settings as they are.
+        if (j.has("cycleEnabled")) {
+            app.theme.updateCycleEnabled(j.getBoolean("cycleEnabled"))
+            app.theme.updateCycleReminder(j.optBoolean("cycleReminder", true))
+            app.theme.updateCycleFor(j.optString("cycleFor")); app.theme.updateCyclePartnerName(j.optString("cyclePartnerName"))
+        }
         app.profile.saveMedical(medical)
         app.profile.save(profile.copy(onboarded = true))
         app.profile.setAvatarBase64(avatar)

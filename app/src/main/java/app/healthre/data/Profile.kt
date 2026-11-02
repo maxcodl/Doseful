@@ -233,6 +233,22 @@ class ThemeSettings(ctx: Context) {
         glass = g
     }
 
+    /** Opt-in period tracker: shows the Cycle tab. */
+    var cycleEnabled by mutableStateOf(sp.getBoolean("cycle_on", false))
+        private set
+    var cycleReminder by mutableStateOf(sp.getBoolean("cycle_remind", true))
+        private set
+
+    /** Whose cycle: "" = decide from gender, "me", or "partner". */
+    var cycleFor by mutableStateOf(sp.getString("cycle_for", "") ?: "")
+        private set
+    var cyclePartnerName by mutableStateOf(sp.getString("cycle_partner", "") ?: "")
+        private set
+
+    fun updateCycleFor(s: String) { sp.edit().putString("cycle_for", s).apply(); cycleFor = s }
+    fun updateCyclePartnerName(s: String) { sp.edit().putString("cycle_partner", s).apply(); cyclePartnerName = s }
+    fun updateCycleEnabled(b: Boolean) { sp.edit().putBoolean("cycle_on", b).apply(); cycleEnabled = b }
+    fun updateCycleReminder(b: Boolean) { sp.edit().putBoolean("cycle_remind", b).apply(); cycleReminder = b }
     fun updateFloatingNav(b: Boolean) { sp.edit().putBoolean("floating_nav", b).apply(); floatingNav = b }
     fun updateTheme(m: Int) { sp.edit().putInt("theme", m).apply(); themeMode = m }
     fun updateAmoled(b: Boolean) { sp.edit().putBoolean("amoled", b).apply(); amoled = b }
