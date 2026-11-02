@@ -587,9 +587,59 @@ internal fun partnerNotification(event: CycleEvent, name: String, day: Long, slo
     return fill(titles.at(day, slot * 3), name) to fill(texts.at(day, 7 + slot * 11), name)
 }
 
-/** Early-evening partner message. [periodActive] swaps romance for comfort. */
-internal fun eveningNotification(name: String, day: Long, periodActive: Boolean): Pair<String, String> =
-    fill(eveningTitles.at(day), name) to fill((if (periodActive) eveningCozy else eveningTexts).at(day, 5), name)
+/** Early-evening messages for someone tracking their own cycle (opt-in). */
+private val selfEveningTexts = listOf(
+    "put your phone down tonight and enjoy the quiet. you earned it.",
+    "tell your partner one thing you love about them. watch them smile.",
+    "light a candle, put on a playlist, and make the evening feel special.",
+    "send a flirty text now. let the evening start early.",
+    "wear something that makes you feel good tonight, just because.",
+    "ask for a long hug tonight. you're allowed to ask.",
+    "cook something you love and eat it slowly.",
+    "plan a mini date at home. dim lights, good music, no screens.",
+    "tell them what you'd love to do tonight. they'll be glad you did.",
+    "take a long warm shower and put on something soft. you deserve it.",
+    "slow dance in the kitchen. yes, really.",
+    "hold hands on the couch. small things count.",
+    "if you're in the mood tonight, say so. if not, cuddles are great too.",
+    "say goodnight properly tonight. a kiss, a hug, a few kind words.",
+    "write a short note and leave it where they'll find it.",
+    "ask them about their day, and tell them about yours, slowly.",
+    "reach for their hand first tonight. see what happens.",
+    "take your time tonight. there's no rush to be anywhere.",
+    "tell them how good it felt when they did that small kind thing.",
+    "watch a film together under one blanket. no phones.",
+    "do something just for you tonight: a bath, a book, your favourite music.",
+    "compliment your partner on something they worked hard on.",
+    "pick a song that reminds you of them and play it tonight.",
+    "ask for a back rub and offer one back.",
+    "feel good in your own skin tonight. the rest follows.",
+    "make plans for a lazy morning together tomorrow.",
+    "tell them you're glad they're yours.",
+    "laugh about something silly from your early days together.",
+    "ask what feels good lately, and tell them what feels good for you.",
+    "kisses are free. hand a few out tonight.",
+)
+private val selfEveningCozy = listOf(
+    "cosy night in: blanket, heat pad, your favourite show. ask for snacks.",
+    "no plans tonight beyond comfort. cuddle only if you want to.",
+    "make tea, dim the lights, and just sit together.",
+    "it's okay to ask for a gentle foot or back rub tonight.",
+    "tonight is for rest. let someone else handle the dishes.",
+    "a long hug and a calm voice is plenty tonight.",
+    "tell them if you want company or space. both are fine.",
+    "put on something soft to watch and keep the snacks coming.",
+    "a warm bath, a candle and a quiet house. take your time.",
+    "go to bed early with a hot-water bottle. you earned it.",
+    "closeness doesn't need to mean anything big. holding hands counts.",
+    "end the day with something kind for yourself.",
+)
+
+/** Early-evening message. [periodActive] swaps romance for comfort; [partner] picks the partner or own-cycle pool. */
+internal fun eveningNotification(partner: Boolean, name: String, day: Long, periodActive: Boolean): Pair<String, String> {
+    val texts = if (partner) (if (periodActive) eveningCozy else eveningTexts) else (if (periodActive) selfEveningCozy else selfEveningTexts)
+    return fill(eveningTitles.at(day), name) to fill(texts.at(day, 5), name)
+}
 
 /** Notification (title, text) for someone tracking their own cycle. */
 internal fun selfNotification(event: CycleEvent, day: Long, slot: Int = 0): Pair<String, String> = selfTitles.at(day, slot * 3) to when (event) {

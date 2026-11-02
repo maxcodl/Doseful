@@ -2,6 +2,11 @@
 
 All notable changes to Doseful are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.3.2] - 2026-11-02
+
+### Added
+- **Evening message for your own cycle too.** The 8 pm message now also comes with cosy, flirty ideas when you track your own cycle (on by default, switch in Profile).
+
 ## [0.3.1] - 2026-11-02
 
 ### Changed

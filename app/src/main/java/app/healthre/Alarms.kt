@@ -236,7 +236,7 @@ object Alarms {
         cyclePi(ctx, PendingIntent.FLAG_NO_CREATE)?.let { am.cancel(it) }
         val theme = (ctx.applicationContext as? AppEnv)?.theme ?: return
         if (!theme.cycleEnabled || !theme.cycleReminder) return
-        val evening = theme.cycleEvening && (ctx.applicationContext as AppEnv).partnerMode
+        val evening = theme.cycleEvening
         val now = ZonedDateTime.now()
         for (d in 0L..1L) {
             val date = now.toLocalDate().plusDays(d)
@@ -258,7 +258,7 @@ object Alarms {
         val info = CycleMath.info(cycles, today) ?: return
         val active = CycleMath.active(cycles, today)
         if (slot == CycleMath.EVENING) {
-            if (app.partnerMode && app.theme.cycleEvening) evening(app, today, active)
+            if (app.theme.cycleEvening) evening(app, today, active)
             return
         }
         val event = CycleMath.dailyEvent(info, active, today) ?: return
@@ -267,7 +267,7 @@ object Alarms {
     }
 
     private fun evening(app: AppEnv, today: Long, periodActive: Boolean) {
-        val (title, text) = eveningNotification(app.partnerName, today, periodActive)
+        val (title, text) = eveningNotification(app.partnerMode, app.partnerName, today, periodActive)
         notifyCycle(app.ctx, title, text, CycleMath.EVENING)
     }
 

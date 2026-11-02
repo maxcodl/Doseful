@@ -117,9 +117,9 @@ private fun CycleSettings(app: AppEnv) {
                 trailingContent = { Switch(app.theme.cycleReminder, { app.theme.updateCycleReminder(it); reschedule() }) },
                 colors = ListItemDefaults.colors(containerColor = transparent),
             )
-            if (app.partnerMode && app.theme.cycleReminder) ListItem(
+            if (app.theme.cycleReminder) ListItem(
                 headlineContent = { Text("Romantic evening message") },
-                supportingContent = { Text("One extra, around 8 pm. Sweet and never pushy; just comfort on period days") },
+                supportingContent = { Text(if (app.partnerMode) "One extra, around 8 pm. Sweet and never pushy; just comfort on period days" else "One extra, around 8 pm. Cosy, flirty ideas for your evening; just comfort on period days") },
                 trailingContent = { Switch(app.theme.cycleEvening, { app.theme.updateCycleEvening(it); reschedule() }) },
                 colors = ListItemDefaults.colors(containerColor = transparent),
             )
@@ -129,7 +129,7 @@ private fun CycleSettings(app: AppEnv) {
             FilledTonalButton({
                 val n = next++
                 val day = LocalDate.now().toEpochDay()
-                if (app.partnerMode && app.theme.cycleEvening && n % 5 == 4) { Alarms.testEvening(app, n % 2 == 0); return@FilledTonalButton }
+                if (app.theme.cycleEvening && n % 5 == 4) { Alarms.testEvening(app, n % 2 == 0); return@FilledTonalButton }
                 val e = CycleEvent.entries[n % 5 % CycleEvent.entries.size]
                 val (t, x) = if (app.partnerMode) partnerNotification(e, app.partnerName, day, n / 5 % 3) else selfNotification(e, day, n / 5 % 3)
                 Alarms.notifyCycle(ctx, t, x)
