@@ -14,6 +14,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import app.healthre.data.*
+import app.healthre.ui.eveningNotification
 import app.healthre.ui.partnerNotification
 import app.healthre.ui.selfNotification
 import kotlinx.coroutines.CoroutineScope
@@ -225,40 +226,60 @@ object Alarms {
         notify(ctx, 4_000_000 + a.id.toInt() * 2 + which, n)
     }
 
-    private fun cyclePi(ctx: Context, flags: Int = PendingIntent.FLAG_UPDATE_CURRENT) = PendingIntent.getBroadcast(
-        ctx, CYCLE_CODE, Intent(ctx, AlarmReceiver::class.java).putExtra("cycle", true), flags or PendingIntent.FLAG_IMMUTABLE,
+    private fun cyclePi(ctx: Context, flags: Int = PendingIntent.FLAG_UPDATE_CURRENT, slot: Int = 0) = PendingIntent.getBroadcast(
+        ctx, CYCLE_CODE, Intent(ctx, AlarmReceiver::class.java).putExtra("cycle", true).putExtra("slot", slot), flags or PendingIntent.FLAG_IMMUTABLE,
     )
 
-    /** Arms the next 09:00 cycle check (daily). Cancelled when the tracker or its reminders are off. */
+    /** Arms the next cycle message: 1 to 3 a day at varied daytime hours, never at night. Cancelled when the tracker or its reminders are off. */
     fun scheduleCycle(ctx: Context) {
         val am = ctx.getSystemService(AlarmManager::class.java)
         cyclePi(ctx, PendingIntent.FLAG_NO_CREATE)?.let { am.cancel(it) }
         val theme = (ctx.applicationContext as? AppEnv)?.theme ?: return
         if (!theme.cycleEnabled || !theme.cycleReminder) return
+        val evening = theme.cycleEvening && (ctx.applicationContext as AppEnv).partnerMode
         val now = ZonedDateTime.now()
-        var at = now.toLocalDate().atTime(9, 0).atZone(now.zone)
-        if (!at.isAfter(now)) at = at.plusDays(1)
-        val ms = at.toInstant().toEpochMilli()
-        if (canExact(ctx)) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, ms, cyclePi(ctx)) else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, ms, cyclePi(ctx))
+        for (d in 0L..1L) {
+            val date = now.toLocalDate().plusDays(d)
+            for (s in CycleMath.slots(date.toEpochDay(), evening)) {
+                val at = date.atStartOfDay(now.zone).plusMinutes(s.minute.toLong())
+                if (!at.isAfter(now)) continue
+                val ms = at.toInstant().toEpochMilli()
+                if (canExact(ctx)) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, ms, cyclePi(ctx, slot = s.id)) else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, ms, cyclePi(ctx, slot = s.id))
+                return
+            }
+        }
     }
 
-    /** Today's cycle notification (period heads-up, PMS, support or self-care tip), if there is one. */
-    suspend fun checkCycle(app: AppEnv, dao: AppDao) {
+    /** One cycle message (period heads-up, PMS, support or self-care tip), if today has an event. [slot] is the day's message id. */
+    suspend fun checkCycle(app: AppEnv, dao: AppDao, slot: Int = 0) {
         if (!app.theme.cycleEnabled || !app.theme.cycleReminder) return
         val cycles = dao.cyclesNow()
         val today = LocalDate.now().toEpochDay()
         val info = CycleMath.info(cycles, today) ?: return
-        val event = CycleMath.dailyEvent(info, CycleMath.active(cycles, today), today) ?: return
-        val (title, text) = if (app.partnerMode) partnerNotification(event, app.partnerName, today) else selfNotification(event, today)
-        notifyCycle(app.ctx, title, text)
+        val active = CycleMath.active(cycles, today)
+        if (slot == CycleMath.EVENING) {
+            if (app.partnerMode && app.theme.cycleEvening) evening(app, today, active)
+            return
+        }
+        val event = CycleMath.dailyEvent(info, active, today) ?: return
+        val (title, text) = if (app.partnerMode) partnerNotification(event, app.partnerName, today, slot) else selfNotification(event, today, slot)
+        notifyCycle(app.ctx, title, text, slot)
     }
 
-    fun notifyCycle(ctx: Context, title: String, text: String) {
+    private fun evening(app: AppEnv, today: Long, periodActive: Boolean) {
+        val (title, text) = eveningNotification(app.partnerName, today, periodActive)
+        notifyCycle(app.ctx, title, text, CycleMath.EVENING)
+    }
+
+    /** Sends the evening message now (for the test button). */
+    fun testEvening(app: AppEnv, periodActive: Boolean) = evening(app, LocalDate.now().toEpochDay(), periodActive)
+
+    fun notifyCycle(ctx: Context, title: String, text: String, slot: Int = 0) {
         val n = NotificationCompat.Builder(ctx, CH_CYCLE)
             .setSmallIcon(R.drawable.ic_pill).setContentTitle(title).setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setContentIntent(openAppPi(ctx)).setAutoCancel(true).build()
-        notify(ctx, CYCLE_NOTIF, n)
+        notify(ctx, CYCLE_NOTIF + slot, n)
     }
 
     /** The persistent notification: today's progress and the next dose. It uses its own low-priority channel so it can be hidden in system settings. */
@@ -325,7 +346,7 @@ class AlarmReceiver : BroadcastReceiver() {
         Alarms.receiverWork(ctx, goAsync()) { app ->
             val dao = app.db.dao()
             if (intent.getBooleanExtra("cycle", false)) {
-                Alarms.checkCycle(app, dao)
+                Alarms.checkCycle(app, dao, intent.getIntExtra("slot", 0))
                 Alarms.scheduleCycle(app)
                 return@receiverWork
             }

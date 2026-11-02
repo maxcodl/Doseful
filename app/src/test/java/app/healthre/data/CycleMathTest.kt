@@ -52,4 +52,20 @@ class CycleMathTest {
         val w = CycleMath.warnings(cycles(0, 28, 56), listOf(PeriodDay(epochDay = 45, flow = 1)), 60)
         assertTrue(w.any { it.title == "Bleeding between periods" })
     }
+
+    @Test fun slotsStayInDaytimeAndVary() {
+        val counts = mutableSetOf<Int>()
+        for (d in 20000L..20100L) {
+            val s = CycleMath.slots(d, false)
+            counts += s.size
+            assertTrue(s.size in 1..3)
+            assertTrue(s.all { it.minute in 540..1170 })
+            assertEquals(s.map { it.minute }.sorted(), s.map { it.minute })
+            assertEquals(s, CycleMath.slots(d, false))
+            val e = CycleMath.slots(d, true).last()
+            assertEquals(CycleMath.EVENING, e.id)
+            assertTrue(e.minute in 1200..1244)
+        }
+        assertEquals(setOf(1, 2, 3), counts)
+    }
 }

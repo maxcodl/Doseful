@@ -146,6 +146,32 @@ internal val supportGroups = listOf(
         "other people deal with it fine.",
         "is this about your period again?",
     )),
+    SupportGroup("evenings", listOf(
+        "put the phones away and actually talk",
+        "cook together, slowly, with music on",
+        "a long hug when you get home",
+        "tell {her} what you love about {her}, out loud",
+        "dim the lights, light a candle, put on a playlist",
+        "dress up a little for a date at home",
+        "a slow dance in the kitchen",
+        "a massage with no strings attached",
+        "watch a film under one blanket",
+        "hold {hers} hand on the couch",
+        "flirt a little. it's allowed.",
+        "kiss {her} like it's the first month",
+        "on period days: comfort first. cuddles only if {she} wants them",
+        "let {her} set the pace. closeness is a two-way thing",
+        "ask what feels good lately, then listen",
+        "a note on the pillow before bed",
+        "plan a lazy morning together tomorrow",
+        "a warm bath set up for {her}, with a candle",
+        "say goodnight properly, not from your phone",
+        "tell {her} one thing that made you smile about {her} today",
+        "stargazing, a balcony chat or a walk after dinner",
+        "reach for {her} first. any touch counts",
+        "end the day with a kind word",
+        "if she isn't in the mood, that's fine. don't sulk, don't push",
+    )),
     SupportGroup("gift ideas", listOf(
         "warm tea or hot chocolate", "{hers} favourite chocolate", "a heat pad or hot-water bottle", "fluffy socks or a cosy blanket",
         "{hers} favourite meal, cooked or ordered", "flowers", "bath bombs or a face mask", "a good book or a playlist for the evening",
@@ -388,21 +414,186 @@ private val selfPre = listOf(
     "wear something comfortable for the next few days.",
 )
 
-/** Notification (title, text) for the partner. Every few days it is a relationship meme instead. */
-internal fun partnerNotification(event: CycleEvent, name: String, day: Long): Pair<String, String> {
-    if (day % 4 == 1L && (event == CycleEvent.PMS || event == CycleEvent.DAY3_PLUS)) memes.at(day).let { return "relatable" to fill(it.top + "\n" + it.bottom, name) }
+private val pmsMore = listOf(
+    "a quiet evening in could be exactly what {she} needs soon.",
+    "if {she} snaps, it's probably not about you. breathe and stay kind.",
+    "ask what {she} feels like eating this week, then actually get it.",
+    "no big surprises this week. predictable and gentle wins.",
+    "offer a shoulder rub before {she} has to ask.",
+    "a cup of {hers} favourite tea, made without being asked. that's the move.",
+    "sleep and snacks fix most things this week.",
+    "tell {her} one thing you love about {her} today. no reason needed.",
+    "take one small chore off {hers} plate today.",
+    "keep the evening plans light this week. {she} will thank you.",
+    "a warm \"how are you really doing?\" goes a long way.",
+    "check the snack shelf. is {hers} favourite still in stock?",
+    "if {she} wants space, give it kindly. if {she} wants company, be there.",
+    "a short walk together can lift the mood. offer, don't push.",
+    "put on {hers} favourite show tonight. no negotiating.",
+    "text {her} something nice before lunch.",
+    "avoid piling on stress this week. be the easy part of {hers} day.",
+    "this is a good week for patience points.",
+    "bring home a tiny treat. it doesn't have to be big.",
+    "listen first this week. fix later, if at all.",
+)
+private val preMore = listOf(
+    "two days left. stock up on tea, snacks and a heat pad.",
+    "{she} might not feel great soon. make the next few days easy.",
+    "good time to check you have {hers} usual painkillers and pads at home.",
+    "plan a calm weekend if you can. keep it low effort.",
+    "ask {her} if there's anything you can grab before it starts.",
+    "offer to cook this week. even simple food counts.",
+    "clear your evenings if you can. {she} may want company.",
+    "get the blanket and hot-water bottle ready.",
+    "be flexible with plans for the next few days.",
+    "pick up {hers} favourite comfort food while you're out.",
+    "a heads-up text works wonders: \"i'm here if you need anything.\"",
+    "the next few days can be rough. you being relaxed makes it easier.",
+    "line up a movie or two for the cosy days ahead.",
+    "make sure there's chocolate in the house. thank me later.",
+    "a small gift now means a lot later.",
+)
+private val day1More = listOf(
+    "hot-water bottle, tea, a hug. in that order.",
+    "ask: \"what can i bring you?\" and just do it.",
+    "take over dinner tonight. no questions asked.",
+    "{she} might be in pain today. soft voice, soft blanket.",
+    "send a message now: \"thinking of you. anything you need?\"",
+    "pick up {hers} favourite snack on the way home.",
+    "do the dishes without being asked. big points.",
+    "keep the lights low and the plans lighter tonight.",
+    "bring a heat pad, or warm up the one you have.",
+    "no jokes about moods today. just kindness.",
+    "offer to run errands so {she} can rest.",
+    "a cuddle on the couch, only if {she} wants one.",
+    "ask how {her} day is going, then really listen.",
+    "order {hers} favourite meal. you pick up the tab.",
+    "painkillers, water, and a calm voice. you've got this.",
+    "today is a good day to say yes to everything {she} asks.",
+    "a good playlist and a quiet evening. that's the whole plan.",
+    "don't wait to be told. look around and fix one thing.",
+)
+private val laterMore = listOf(
+    "a few days in. keep the kindness going.",
+    "ask how {she} is feeling today. it can change daily.",
+    "suggest a short walk or a movie. no pressure.",
+    "make a simple dinner tonight.",
+    "{she} might be getting tired of this. a treat will help.",
+    "keep being patient. it's almost over.",
+    "pick up something sweet on your way home.",
+    "bring a cup of tea without being asked.",
+    "stay available for a chat if {she} wants one.",
+    "offer a lazy evening with {hers} favourite show.",
+    "check if {she} needs anything from the shop.",
+    "good day to take the lead on chores.",
+    "a little note on the table does the job.",
+    "ask what would help most today. then do exactly that.",
+    "still cosy mode. blankets, snacks, calm music.",
+)
+private val selfMore = listOf(
+    "drink some water and take a short break.",
+    "a warm shower can ease cramps and the mood.",
+    "eat something you actually enjoy today.",
+    "gentle stretching helps. even five minutes.",
+    "say no to one thing today. you're allowed.",
+    "a heat pad on your lower belly is worth the trouble.",
+    "go easy on caffeine if cramps are bothering you.",
+    "an early night is a good idea.",
+    "slow walk outside. fresh air helps.",
+    "iron-rich foods help during your period: lentils, spinach, beans.",
+    "treat yourself to something small.",
+    "tell someone you trust how you're feeling today.",
+    "breathe slowly for a minute. it really does help.",
+    "it's okay to rest. your body is working hard.",
+    "put your feet up with something cosy to watch.",
+)
+
+/** Early-evening messages for partner mode (opt-in). Warm and romantic, never pushy. */
+private val eveningTitles = listOf("tonight", "evening plan", "little idea", "after dinner", "just us", "good evening", "tonight's mood")
+private val eveningTexts = listOf(
+    "put the phones away tonight and just talk. see where the evening goes.",
+    "tell {her} one thing you find attractive that has nothing to do with looks.",
+    "a long slow hug at the door says a lot. try it when you see {her}.",
+    "light a candle, put on a playlist, cook something together.",
+    "kiss {her} hello like it's the first month again.",
+    "flirt a little. a text now makes the evening start early.",
+    "plan a proper date at home. dress up a little, even if it's just the two of you.",
+    "tonight: no screens for an hour. just {her} and you.",
+    "say something sweet before bed. it matters more than you think.",
+    "make the evening feel special. dim the lights, play something slow.",
+    "ask {her} what {she} would love to do tonight, and then do it.",
+    "hold {hers} hand on the couch. small things count.",
+    "give {her} a slow back rub tonight, no strings attached.",
+    "cook {hers} favourite meal and eat it by candlelight.",
+    "if the mood is there tonight, let {her} set the pace. if not, cuddles are great too.",
+    "whisper something nice when you say goodnight.",
+    "remind {her} why you picked {her}. out loud.",
+    "slow dance in the kitchen. yes, really.",
+    "go for a walk after dinner, hand in hand.",
+    "turn the evening into a mini date. start with a compliment.",
+    "put on the music {she} loves and pour something nice.",
+    "tell {her} what you were thinking about {her} today.",
+    "a massage, a candle and no rush. that's a good night.",
+    "pay full attention tonight. eye contact, no phone, no half listening.",
+    "tell {her} how good {she} looks when {she} laughs.",
+    "plan a lazy morning together tomorrow, then start tonight early.",
+    "write a short note and leave it on {hers} pillow.",
+    "kisses are free. hand them out generously tonight.",
+    "ask {her} to tell you about {hers} day, slowly, with all the details.",
+    "closeness doesn't have to mean anything big. a long cuddle counts.",
+    "reach for {her} first tonight. a hug, a touch on the shoulder, anything.",
+    "make tonight about {her}. take your time and listen to what {she} likes.",
+    "watch a film together under one blanket. no phones.",
+    "be the reason {she} goes to bed smiling.",
+    "compliment {her} on something {she} worked hard on.",
+    "get close, talk quietly, laugh about something silly from your past.",
+    "small gestures win the night: a warm drink, a soft voice, a long hug.",
+    "tell {her} you're glad {she}'s yours. then let it sink in.",
+    "good chemistry grows with attention. give {her} yours tonight.",
+    "ask {her} what feels good lately, and what would feel even better.",
+)
+
+/** Evening messages on period days: comfort and closeness, no pressure. */
+private val eveningCozy = listOf(
+    "a cosy night in: blanket, heat pad, {hers} favourite show. you're the snack runner.",
+    "no plans tonight beyond comfort. cuddle only if {she} wants one.",
+    "make tea, dim the lights, and just sit together.",
+    "offer a gentle foot or back rub. only if {she} wants it.",
+    "tonight is for rest. take care of dinner and dishes.",
+    "a long hug and a calm voice is plenty tonight.",
+    "ask: \"want company or want space?\" both answers are good ones.",
+    "put on something soft to watch and keep the snacks coming.",
+    "tell {her} {she}'s doing great. keep it simple and kind.",
+    "a warm bath, a candle and a quiet house. set it up for {her}.",
+    "be there without making it a thing. that's what {she} needs tonight.",
+    "send her to bed early with a hot-water bottle and a kiss goodnight.",
+    "closeness doesn't need to mean anything big. holding hands counts.",
+    "read to {her} for a bit, or put on a calm playlist.",
+    "end the day with a kind word. it's the little things.",
+)
+
+/**
+ * Notification (title, text) for the partner. [slot] is the day's message number (0 = first), so several in one day differ.
+ * The first is always the real alert; later ones may be a relationship meme.
+ */
+internal fun partnerNotification(event: CycleEvent, name: String, day: Long, slot: Int = 0): Pair<String, String> {
+    if (slot > 0 && (day + slot) % 2 == 0L && (event == CycleEvent.PMS || event == CycleEvent.DAY3_PLUS)) memes.at(day, slot).let { return "relatable" to fill(it.top + "\n" + it.bottom, name) }
     val (titles, texts) = when (event) {
-        CycleEvent.PMS -> pmsTitles to pmsTexts
-        CycleEvent.PRE -> preTitles to preTexts
-        CycleEvent.DAY1_2 -> day1Titles to day1Texts
-        CycleEvent.DAY3_PLUS -> laterTitles to laterTexts
+        CycleEvent.PMS -> pmsTitles to pmsTexts + pmsMore
+        CycleEvent.PRE -> preTitles to preTexts + preMore
+        CycleEvent.DAY1_2 -> day1Titles to day1Texts + day1More
+        CycleEvent.DAY3_PLUS -> laterTitles to laterTexts + laterMore
     }
-    return fill(titles.at(day), name) to fill(texts.at(day, 7), name)
+    return fill(titles.at(day, slot * 3), name) to fill(texts.at(day, 7 + slot * 11), name)
 }
 
+/** Early-evening partner message. [periodActive] swaps romance for comfort. */
+internal fun eveningNotification(name: String, day: Long, periodActive: Boolean): Pair<String, String> =
+    fill(eveningTitles.at(day), name) to fill((if (periodActive) eveningCozy else eveningTexts).at(day, 5), name)
+
 /** Notification (title, text) for someone tracking their own cycle. */
-internal fun selfNotification(event: CycleEvent, day: Long): Pair<String, String> = selfTitles.at(day) to when (event) {
-    CycleEvent.PMS -> selfPms.at(day)
-    CycleEvent.PRE -> selfPre.at(day)
-    CycleEvent.DAY1_2, CycleEvent.DAY3_PLUS -> selfDay.at(day, 3)
+internal fun selfNotification(event: CycleEvent, day: Long, slot: Int = 0): Pair<String, String> = selfTitles.at(day, slot * 3) to when (event) {
+    CycleEvent.PMS -> selfPms.at(day, slot * 11)
+    CycleEvent.PRE -> selfPre.at(day, slot * 11)
+    CycleEvent.DAY1_2, CycleEvent.DAY3_PLUS -> (selfDay + selfMore).at(day, 3 + slot * 11)
 }

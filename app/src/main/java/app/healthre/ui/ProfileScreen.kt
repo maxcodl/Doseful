@@ -113,17 +113,25 @@ private fun CycleSettings(app: AppEnv) {
             )
             ListItem(
                 headlineContent = { Text(if (app.partnerMode) "Daily support tips" else "Period reminders and tips") },
-                supportingContent = { Text(if (app.partnerMode) "Notifications on what she may need, and how to help" else "Heads-up before your period, plus daily self-care tips") },
+                supportingContent = { Text(if (app.partnerMode) "One to three friendly notifications a day, only when it matters, never at night" else "One to three notifications a day around your period, never at night") },
                 trailingContent = { Switch(app.theme.cycleReminder, { app.theme.updateCycleReminder(it); reschedule() }) },
+                colors = ListItemDefaults.colors(containerColor = transparent),
+            )
+            if (app.partnerMode && app.theme.cycleReminder) ListItem(
+                headlineContent = { Text("Romantic evening message") },
+                supportingContent = { Text("One extra, around 8 pm. Sweet and never pushy; just comfort on period days") },
+                trailingContent = { Switch(app.theme.cycleEvening, { app.theme.updateCycleEvening(it); reschedule() }) },
                 colors = ListItemDefaults.colors(containerColor = transparent),
             )
         }
         if (app.theme.cycleEnabled) {
             var next by remember { mutableIntStateOf(0) }
             FilledTonalButton({
-                val e = CycleEvent.entries[next++ % CycleEvent.entries.size]
+                val n = next++
                 val day = LocalDate.now().toEpochDay()
-                val (t, x) = if (app.partnerMode) partnerNotification(e, app.partnerName, day) else selfNotification(e, day)
+                if (app.partnerMode && app.theme.cycleEvening && n % 5 == 4) { Alarms.testEvening(app, n % 2 == 0); return@FilledTonalButton }
+                val e = CycleEvent.entries[n % 5 % CycleEvent.entries.size]
+                val (t, x) = if (app.partnerMode) partnerNotification(e, app.partnerName, day, n / 5 % 3) else selfNotification(e, day, n / 5 % 3)
                 Alarms.notifyCycle(ctx, t, x)
             }, shapes = ButtonDefaults.shapes()) { Text("Send test tip") }
         }

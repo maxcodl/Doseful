@@ -245,6 +245,9 @@ class ThemeSettings(ctx: Context) {
     var cyclePartnerName by mutableStateOf(sp.getString("cycle_partner", "") ?: "")
         private set
 
+    /** Partner mode only: an extra early-evening message (20:00). On by default. */
+    var cycleEvening by mutableStateOf(sp.getBoolean("cycle_evening", true))
+    fun updateCycleEvening(b: Boolean) { sp.edit().putBoolean("cycle_evening", b).apply(); cycleEvening = b }
     fun updateCycleFor(s: String) { sp.edit().putString("cycle_for", s).apply(); cycleFor = s }
     fun updateCyclePartnerName(s: String) { sp.edit().putString("cycle_partner", s).apply(); cyclePartnerName = s }
     fun updateCycleEnabled(b: Boolean) { sp.edit().putBoolean("cycle_on", b).apply(); cycleEnabled = b }

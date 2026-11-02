@@ -48,6 +48,25 @@ object CycleMath {
         }
     }
 
+    /** One notification time. [id] 0..2 are daytime messages, [EVENING] is the optional early-evening one. */
+    data class Slot(val id: Int, val minute: Int)
+    const val EVENING = 3
+
+    /**
+     * Times (minute of day) for [day]'s messages: 1 to 3 spread over three daytime windows
+     * (9:00-11:30, 12:30-15:30, 16:30-19:30), plus one at 20:00-20:44 when [evening]. Same day, same times. Nothing at night.
+     */
+    fun slots(day: Long, evening: Boolean): List<Slot> {
+        val h = (day * 2654435761L) and 0x7fffffffL
+        val n = 1 + (h % 3).toInt()
+        val windows = listOf(540 to 690, 750 to 930, 990 to 1170)
+        val pick = (h / 3 % 3).toInt()
+        val use = when (n) { 1 -> listOf(pick); 2 -> windows.indices.filter { it != pick }; else -> windows.indices.toList() }
+        val out = use.mapIndexed { i, w -> Slot(i, windows[w].first + ((h shr (4 + i * 5)) % (windows[w].second - windows[w].first)).toInt()) }.toMutableList()
+        if (evening) out += Slot(EVENING, 1200 + ((h shr 20) % 45).toInt())
+        return out
+    }
+
     const val DEFAULT_CYCLE = 28
     const val DEFAULT_PERIOD = 5
     private const val LUTEAL = 14

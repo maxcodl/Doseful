@@ -2,6 +2,15 @@
 
 All notable changes to Doseful are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.3.1] - 2026-11-02
+
+### Changed
+- **Cycle notifications now come 1 to 3 times a day** at varied daytime hours (9:00 to 19:30), never at night, instead of a single 9:00 message. Turn them off with the reminders switch in Profile.
+
+### Added
+- **Romantic evening message** (partner mode, on by default): one extra message around 8 pm. Sweet and never pushy, and just comfort on period days.
+- About 130 more tips and messages, and an "evenings" group in How to support her.
+
 ## [0.3.0] - 2026-11-02
 
 ### Added

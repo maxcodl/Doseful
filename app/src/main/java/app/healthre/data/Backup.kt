@@ -25,7 +25,7 @@ object Backup {
                 JSONObject().put("type", it.type).put("value", it.value.toDouble()).put("value2", it.value2.toDouble())
                     .put("recordedAt", it.recordedAt).put("note", it.note)
             })
-            .put("cycleEnabled", app.theme.cycleEnabled).put("cycleReminder", app.theme.cycleReminder)
+            .put("cycleEnabled", app.theme.cycleEnabled).put("cycleReminder", app.theme.cycleReminder).put("cycleEvening", app.theme.cycleEvening)
             .put("cycleFor", app.theme.cycleFor).put("cyclePartnerName", app.theme.cyclePartnerName)
             .put("cycles", arr(d.cyclesNow()) {
                 JSONObject().put("startDay", it.startDay).put("endDay", it.endDay ?: JSONObject.NULL)
@@ -85,6 +85,7 @@ object Backup {
         if (j.has("cycleEnabled")) {
             app.theme.updateCycleEnabled(j.getBoolean("cycleEnabled"))
             app.theme.updateCycleReminder(j.optBoolean("cycleReminder", true))
+            app.theme.updateCycleEvening(j.optBoolean("cycleEvening", true))
             app.theme.updateCycleFor(j.optString("cycleFor")); app.theme.updateCyclePartnerName(j.optString("cyclePartnerName"))
         }
         app.profile.saveMedical(medical)
